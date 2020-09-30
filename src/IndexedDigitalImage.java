@@ -8,14 +8,14 @@ import java.awt.*;
 public class IndexedDigitalImage implements DigitalImage {
 
     // 8-bit color depth means 255 colors on the palette
-    private final Color[] palette = new Color[255];
+    private final Color[] palette = new Color[256];
     private final int height, width;
-    private final int[] raster;
+    private final byte[] raster;
 
     IndexedDigitalImage(int width, int height) {
         this.width = width;
         this.height = height;
-        this.raster = new int[width * height];
+        this.raster = new byte[width * height];
     }
 
     IndexedDigitalImage(int width, int height, Color[] palette) {
@@ -59,7 +59,7 @@ public class IndexedDigitalImage implements DigitalImage {
     public void setPixel(int x, int y, int[] pixel) {
         var newColor = new Color(pixel[0], pixel[1], pixel[2]);
 
-        for (int i = 0; i < this.palette.length; i++) {
+        for (byte i = 0; i < this.palette.length; i++) {
             if (this.palette[i].equals(newColor)) {
                 this.raster[x + y * this.width] = i;
                 return;
@@ -67,7 +67,7 @@ public class IndexedDigitalImage implements DigitalImage {
         }
 
         // if the color isn't in the pallet add it.
-        int openIndex;
+        byte openIndex;
         for (openIndex = 0; openIndex < this.palette.length; openIndex++) {
             if (this.palette[openIndex] == null) break;
         }
@@ -83,7 +83,18 @@ public class IndexedDigitalImage implements DigitalImage {
     }
 
     @Override
+    /*
+     * Could possibly affect multiple pixels.
+     */
     public void setSample(int x, int y, int band, int sample) {
-        // Does this need to act like RGB???
+        // Get the rgb value and the index in the palette.
+        int paletteIndex = this.raster[x + y * this.width],
+            rgb = this.palette[paletteIndex].getRGB();
+
+        // Bit mask the sample into the correct bit locations.
+        rgb = (rgb & ~(0xff << 16 - band * 8)) | ((sample & 0xff) << 16 - band * 8);
+
+        // Create the new color and put it in the palette.
+        this.palette[paletteIndex] = new Color(rgb);
     }
 }
