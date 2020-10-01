@@ -42,4 +42,3 @@
      int getSample(int x, int y, int band);
      void setSample(int x, int y, int band, int sample);
  }
-

@@ -1,4 +1,4 @@
-import hw1.DigitalImage;
+package hw1;
 
 import java.awt.*;
 
@@ -72,8 +72,10 @@ public class IndexedDigitalImage implements DigitalImage {
             if (this.palette[openIndex] == null) break;
         }
 
-        setPaletteColor(openIndex, newColor);
-
+        if( openIndex < this.palette.length ) setPaletteColor(openIndex, newColor);
+        else {
+            // No space in the palette!
+        }
         this.raster[x + y * this.width] = openIndex;
     }
 
