@@ -120,10 +120,6 @@ public class IndexedDigitalImage implements DigitalImage {
                     minIndex = i;
                 }
             }
-            var oldColor = palette[minIndex];
-            palette[minIndex] = new Color((newColor.getRed() + oldColor.getRed()) / 2,
-                    (newColor.getGreen() + oldColor.getGreen()) / 2,
-                    (newColor.getBlue() + oldColor.getBlue()) / 2);
 
             return (byte) minIndex;
         }

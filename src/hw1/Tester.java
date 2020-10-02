@@ -95,10 +95,10 @@ public class Tester {
 			System.out.println("wrong type of DigitalImage produced by DigitalImageIO.read");
 		}
 		
-//		if( !areEqual( image, image2 ) ) {
-//			System.out.println("Error with either DigitalImage read or write");
-//			System.exit(1);
-//		}
+		if( !areEqual( image, image2 ) ) {
+			System.out.println("Error with either DigitalImage read or write");
+			System.exit(1);
+		}
 		
 		BufferedImage copy = ImageConverter.toBufferedImage( image2 );
 		ImageIO.write( copy,  "PNG", new File( args[3] ) );				
