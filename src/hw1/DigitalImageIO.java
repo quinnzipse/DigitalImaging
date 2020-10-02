@@ -19,8 +19,7 @@ public class DigitalImageIO {
         var width = scanner.nextInt();
         var height = scanner.nextInt();
 
-        // ?????? No one knows on this one.
-        var maxval = scanner.nextInt();
+        var maxVal = scanner.nextInt();
 
         DigitalImage outputImage;
         switch (type) {
@@ -41,10 +40,9 @@ public class DigitalImageIO {
         }
 
         // Read in all the samples.
-        int x = 0;
-        while (scanner.hasNextInt()) {
-            var sample = scanner.nextInt();
-            outputImage.setSample(x, x / 3, x % 3, sample);
+        for (int x = 0; scanner.hasNextInt(); x++) {
+            int[] rgb = new int[]{scanner.nextInt(), scanner.nextInt(), scanner.nextInt()};
+            outputImage.setPixel(x % outputImage.getWidth(), x / outputImage.getWidth(), rgb);
         }
 
         scanner.close();
@@ -67,11 +65,11 @@ public class DigitalImageIO {
         // Write out all the samples.
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
+                sb.append("\n");
                 for (int b = 0; b < image.getBands(); b++) {
                     sb.append(image.getSample(x, y, b));
                     sb.append(" ");
                 }
-                sb.append("\n");
             }
         }
 

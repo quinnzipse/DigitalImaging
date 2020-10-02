@@ -11,7 +11,8 @@ public class ImageConverter {
         for (int y = 0; y < src.getHeight(); y++) {
             for (int x = 0; x < src.getWidth(); x++) {
                 var rgb = src.getPixel(x, y);
-                outImage.setRGB(rgb[0], rgb[1], rgb[2]);
+                var rgbVal = rgb[0] << 16 | rgb[1] << 8 | rgb[2];
+                outImage.setRGB(x, y, rgbVal);
             }
         }
 
