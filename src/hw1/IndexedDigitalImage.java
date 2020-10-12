@@ -129,7 +129,9 @@ public class IndexedDigitalImage implements DigitalImage {
 
     @Override
     public int getSample(int x, int y, int band) {
-        return (this.palette[this.raster[x + y * this.width]].getRGB() >> (16 - band) * 8) & 0xFF;
+        int index = this.raster[x + y * this.width];
+        if (index < 0) index += 256;
+        return (this.palette[index].getRGB() >> (16 - band) * 8) & 0xFF;
     }
 
     @Override
