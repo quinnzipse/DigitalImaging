@@ -9,7 +9,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.awt.image.ColorModel;
 
-public class HorizontalFilpOp implements PluggableImageOp, BufferedImageOp {
+public class VerticalFlipOp implements PluggableImageOp, BufferedImageOp {
     @Override
     public BufferedImageOp getDefault(BufferedImage bufferedImage) {
         return null;

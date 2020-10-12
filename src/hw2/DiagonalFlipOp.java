@@ -5,11 +5,9 @@ import pixeljelly.ops.PluggableImageOp;
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.BufferedImageOp;
-import java.awt.image.ColorModel;
+import java.awt.image.*;
 
-public class DiagonalFilpOp implements PluggableImageOp, BufferedImageOp {
+public class DiagonalFlipOp implements PluggableImageOp, BufferedImageOp {
     @Override
     public BufferedImageOp getDefault(BufferedImage bufferedImage) {
         return null;

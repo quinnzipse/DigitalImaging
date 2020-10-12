@@ -9,7 +9,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.awt.image.ColorModel;
 
-public class VerticalFilpOp implements PluggableImageOp, BufferedImageOp {
+public class HorizontalFlipOp implements PluggableImageOp, BufferedImageOp {
     @Override
     public BufferedImageOp getDefault(BufferedImage bufferedImage) {
         return null;
@@ -32,7 +32,7 @@ public class VerticalFilpOp implements PluggableImageOp, BufferedImageOp {
 
     @Override
     public BufferedImage createCompatibleDestImage(BufferedImage src, ColorModel destCM) {
-        return null;
+        return new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
     }
 
     @Override
