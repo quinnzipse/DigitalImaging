@@ -6,7 +6,7 @@ import pixeljelly.ops.PluggableImageOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 
-public class DiagonalFlipOp extends NullOp implements PluggableImageOp, BufferedImageOp {
+public class DiagonalFlipOp extends NullOp implements PluggableImageOp {
     @Override
     public BufferedImageOp getDefault(BufferedImage bufferedImage) {
         return new DiagonalFlipOp();
