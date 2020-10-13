@@ -10,10 +10,6 @@ import java.awt.image.BufferedImageOp;
 
 public class VerticalFlipOp extends NullOp implements PluggableImageOp {
 
-    public VerticalFlipOp() {
-
-    }
-
     @Override
     public BufferedImageOp getDefault(BufferedImage bufferedImage) {
         return new VerticalFlipOp();
