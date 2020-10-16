@@ -27,7 +27,7 @@ public class DiagonalFlipOp extends NullOp implements PluggableImageOp {
 
         for(Location pt : new RasterScanner(src, true)){
             int sample = src.getRaster().getSample(pt.col, pt.row, pt.band);
-            dest.getRaster().setSample(Math.abs((src.getWidth() - 1) - pt.col), Math.abs(src.getHeight() - 1 - pt.col), pt.band, sample);
+            dest.getRaster().setSample(Math.abs((src.getWidth() - 1) - pt.col), Math.abs(src.getHeight() - 1 - pt.row), pt.band, sample);
         }
 
         return dest;
