@@ -18,7 +18,7 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
 
     public ShiftOp() {
         hueTarget = 0;
-        satScale = 1.5;
+        satScale = .2;
         shiftStrength = 1;
     }
 
@@ -50,7 +50,7 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
             for (int j = 0; j < hsv.getHeight(); j++) {
                 //        < hShift(H, hueTarget), Y * satScale, V >
                 double[] hsvVals = hsv.getRaster().getPixel(i, j, new double[3]);
-                hsvVals[0] = hShift(hsvVals[0]/255);
+                hsvVals[0] = hShift(hsvVals[0] / 255);
                 hsvVals[1] = hsvVals[1] * (satScale / 5);
                 dest.getRaster().setPixel(i, j, hsvVals);
             }
@@ -65,8 +65,8 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
         // The function then returns H moved closer to hueTarget by the amount dHshiftStrength.
         double dH = Math.min(Math.abs(hueTarget * 360 - h * 360), Math.abs((hueTarget * 360) + 360 - h * 360));
 
-        if (h > hueTarget) return h - Math.pow(dH, shiftStrength);
-        else return h + Math.pow(dH, shiftStrength);
+        if (h > hueTarget) return h - Math.pow(dH / 180.0, shiftStrength);
+        else return h + Math.pow(dH / 180.0, shiftStrength);
     }
 
     private BufferedImage getHSVImage(BufferedImage src) {
