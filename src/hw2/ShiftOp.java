@@ -17,8 +17,8 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
     private double shiftStrength;
 
     public ShiftOp() {
-        hueTarget = 0;
-        satScale = .2;
+        hueTarget = 0.33;
+        satScale = .6;
         shiftStrength = 1;
     }
 
@@ -50,8 +50,8 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
             for (int j = 0; j < hsv.getHeight(); j++) {
                 //        < hShift(H, hueTarget), Y * satScale, V >
                 double[] hsvVals = hsv.getRaster().getPixel(i, j, new double[3]);
-                hsvVals[0] = hShift(hsvVals[0] / 255);
-                hsvVals[1] = hsvVals[1] * (satScale / 5);
+                hsvVals[0] = hShift(hsvVals[0] / 255) * 255;
+                hsvVals[1] = hsvVals[1] * (satScale);
                 dest.getRaster().setPixel(i, j, hsvVals);
             }
         }
@@ -63,10 +63,30 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
         // This difference is such that two hues differing by 180 degrees are 1 unit apart;
         // hence the difference between any two hues will always be in the interval [0, 1]
         // The function then returns H moved closer to hueTarget by the amount dHshiftStrength.
-        double dH = Math.min(Math.abs(hueTarget * 360 - h * 360), Math.abs((hueTarget * 360) + 360 - h * 360));
 
-        if (h > hueTarget) return h - Math.pow(dH / 180.0, shiftStrength);
-        else return h + Math.pow(dH / 180.0, shiftStrength);
+        System.out.print(" ACTUAL: " + h * 360);
+
+        // Calculate the distance away.
+        int angle1 = (int) (Math.abs(hueTarget * 360 - h * 360) % 360);
+
+        // If that angle is greater than 180, take the inverse.
+        boolean clockwise = angle1 > 180;
+        double dH = (clockwise ? 360 - angle1 : angle1) / 180.0;
+
+        double out;
+        if (h < hueTarget && !clockwise) out = h + Math.pow(dH, shiftStrength);
+        else if (h < hueTarget) {
+            out = h - Math.pow(dH, shiftStrength);
+            if (out < 0) out += 1;
+        } else if (h > hueTarget && !clockwise) {
+            out = h - Math.pow(dH, shiftStrength);
+        } else {
+            out = h + Math.pow(dH, shiftStrength);
+            if (out > 1) out -= 1;
+        }
+
+        System.out.println(" OUT: " + out * 360);
+        return out;
     }
 
     private BufferedImage getHSVImage(BufferedImage src) {
