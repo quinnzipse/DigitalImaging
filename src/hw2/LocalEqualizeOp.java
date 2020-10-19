@@ -1,17 +1,23 @@
 package hw2;
 
 import pixeljelly.features.Histogram;
+import pixeljelly.ops.BrightnessBandExtractOp;
+import pixeljelly.ops.HistogramEqualizeOp;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
+import pixeljelly.scanners.Location;
+import pixeljelly.scanners.RasterScanner;
 import pixeljelly.utilities.ImagePadder;
 import pixeljelly.utilities.ReflectivePadder;
 
+import java.awt.color.ColorSpace;
 import java.awt.image.*;
 
 import static pixeljelly.utilities.ColorUtilities.*;
 
 public class LocalEqualizeOp extends NullOp implements PluggableImageOp {
-    private int w, h;
+    private final int w;
+    private final int h;
     private boolean isBanded;
 
     public LocalEqualizeOp() {
@@ -39,27 +45,25 @@ public class LocalEqualizeOp extends NullOp implements PluggableImageOp {
         if (dest == null) {
             dest = createCompatibleDestImage(src, src.getColorModel());
         }
-        for (int i = 0; i < src.getWidth(); i++) {
-            for (int j = 0; j < src.getHeight(); j++) {
-                BufferedImage hsv = getHSVImage(getSubImage(src, i, j));
 
-                equalize(hsv, 2);
+        BufferedImage hsv = getHSVImage(src);
 
-                dest.getRaster().setPixel(i, j, hsv.getRaster().getPixel((int) Math.ceil(hsv.getWidth() / 2.0), (int) Math.ceil(hsv.getHeight() / 2.0), new float[3]));
-            }
+        for (Location pt : new RasterScanner(hsv, true)) {
+            BufferedImage img = getBrightnessSubImage(hsv, pt.col, pt.row);
+            img = (new HistogramEqualizeOp(1)).filter(img, null);
+            hsv.getRaster().setSample(pt.col, pt.row, 2, img.getRaster().getSample((int) Math.ceil(w / 2.0), (int) Math.ceil(h / 2.0), 0));
         }
-        return getRGBImage(dest);
+
+        return getRGBImage(hsv);
+
     }
 
-    private BufferedImage getSubImage(BufferedImage src, int i, int j){
-        BufferedImage subImg = new BufferedImage(w, h, src.getType());
-
-        for (int x = -(w / 2); x < (w / 2); x++) {
-            for (int y = -(h / 2); y < (h / 2); y++) {
-                for (int b = 0; b < 3; b++) {
-                    ImagePadder padder = ReflectivePadder.getInstance();
-                    subImg.getRaster().setSample(x + (w / 2), y + (h / 2), b, padder.getSample(src, i + x, j + y, b));
-                }
+    private BufferedImage getBrightnessSubImage(BufferedImage src, int i, int j) {
+        BufferedImage subImg = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY);
+        ImagePadder padder = ReflectivePadder.getInstance();
+        for (int x = -(w / 2); x <= (w / 2); x++) {
+            for (int y = -(h / 2); y <= (h / 2); y++) {
+                subImg.getRaster().setSample(x + (w / 2), y + (h / 2), 0, padder.getSample(src, i + x, j + y, 2));
             }
         }
 

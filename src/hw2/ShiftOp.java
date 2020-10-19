@@ -51,7 +51,7 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
                 //        < hShift(H, hueTarget), Y * satScale, V >
                 double[] hsvVals = hsv.getRaster().getPixel(i, j, new double[3]);
                 hsvVals[0] = hShift(hsvVals[0] / 255) * 255;
-                hsvVals[1] = hsvVals[1] * (satScale);
+                hsvVals[1] = clamp(hsvVals[1] * (satScale));
                 dest.getRaster().setPixel(i, j, hsvVals);
             }
         }
@@ -64,28 +64,31 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
         // hence the difference between any two hues will always be in the interval [0, 1]
         // The function then returns H moved closer to hueTarget by the amount dHshiftStrength.
 
-        System.out.print(" ACTUAL: " + h * 360);
-
         // Calculate the distance away.
-        int angle1 = (int) (Math.abs(hueTarget * 360 - h * 360) % 360);
+        int angle1 = (int) (hueTarget * 360 - h * 360);
 
-        // If that angle is greater than 180, take the inverse.
-        boolean clockwise = angle1 > 180;
-        double dH = (clockwise ? 360 - angle1 : angle1) / 180.0;
+        // Find the shortest direction
+        boolean clockwise = Math.abs(angle1) > 180 ^ angle1 < 0;
+
+        // Find the shortest magnitude.
+        angle1 = Math.abs(angle1);
+        double dH = (angle1 > 180 ? 360 - angle1 : angle1) / 180.0;
 
         double out;
-        if (h < hueTarget && !clockwise) out = h + Math.pow(dH, shiftStrength);
-        else if (h < hueTarget) {
+        if (clockwise) {
+            // Subtracting is clockwise!
             out = h - Math.pow(dH, shiftStrength);
+
+            // If you went past 0, wrap around
             if (out < 0) out += 1;
-        } else if (h > hueTarget && !clockwise) {
-            out = h - Math.pow(dH, shiftStrength);
         } else {
+            // Adding is counter-clockwise!
             out = h + Math.pow(dH, shiftStrength);
-            if (out > 1) out -= 1;
+
+            // If you went past 1, wrap around
+            if(out > 1) out -= 1;
         }
 
-        System.out.println(" OUT: " + out * 360);
         return out;
     }
 
