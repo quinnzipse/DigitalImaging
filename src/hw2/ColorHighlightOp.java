@@ -18,7 +18,6 @@ public class ColorHighlightOp extends NullOp implements PluggableImageOp {
     private Color targetColor;
 
     public ColorHighlightOp() {
-        targetColor = new Color(220, 50, 50);
     }
 
     public ColorHighlightOp(Color targetColor) {
@@ -27,7 +26,7 @@ public class ColorHighlightOp extends NullOp implements PluggableImageOp {
 
     @Override
     public BufferedImageOp getDefault(BufferedImage bufferedImage) {
-        return new ColorHighlightOp();
+        return new ColorHighlightOp(new Color(220, 50, 50));
     }
 
     @Override

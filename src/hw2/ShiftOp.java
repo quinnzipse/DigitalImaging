@@ -18,9 +18,6 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
     private double shiftStrength;
 
     public ShiftOp() {
-        hueTarget = .33;
-        satScale = 1;
-        shiftStrength = 2;
     }
 
     public ShiftOp(double hueTarget, double satScale, double shiftStrength) {
@@ -31,7 +28,7 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
 
     @Override
     public BufferedImageOp getDefault(BufferedImage bufferedImage) {
-        return new ShiftOp();
+        return new ShiftOp(0, 1.5, 1);
     }
 
     @Override
