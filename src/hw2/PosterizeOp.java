@@ -39,13 +39,13 @@ public class PosterizeOp extends NullOp implements PluggableImageOp {
         }
 
         for (Location pt : new RasterScanner(src, false)) {
-            float[] hsvVals = RGBtoHSV(src.getRGB(pt.col, pt.row));
+            int pixel = src.getRGB(pt.col, pt.row);
 
             double minDistance = Double.MAX_VALUE;
             Color minColor = null;
 
             for (Color color : colors) {
-                double distance = calcL2Distance(hsvVals, RGBtoHSV(color));
+                double distance = calcL2Distance(color.getRGB(), pixel);
                 if (distance < minDistance) {
                     minDistance = distance;
                     minColor = color;
@@ -59,11 +59,9 @@ public class PosterizeOp extends NullOp implements PluggableImageOp {
         return dest;
     }
 
-    private double calcL2Distance(float[] hsv1, float[] hsv2) {
-        double distance = Math.sqrt(0 +
-                Math.pow(hsv1[1] * Math.cos(2 * Math.PI * hsv1[0]) - hsv2[1] * Math.cos(2 * Math.PI * hsv2[0]), 2)
-                + Math.pow(hsv1[1] * Math.sin(2 * Math.PI * hsv1[0]) - hsv2[1] * Math.sin(2 * Math.PI * hsv2[0]), 2)
-                + Math.pow(hsv1[2] - hsv2[2], 2));
-        return (distance / Math.sqrt(5));
+    private double calcL2Distance(int rgb1, int rgb2) {
+        return Math.sqrt(Math.pow((rgb2 >> 16 & 0xff) - (rgb1 >> 16 & 0xff), 2)
+                + Math.pow((rgb2 >> 8 & 0xff) - (rgb1 >> 8 & 0xff), 2)
+                + Math.pow((rgb2 & 0xff) - (rgb1 & 0xff), 2));
     }
 }
