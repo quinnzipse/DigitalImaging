@@ -2,10 +2,11 @@ package hw2;
 
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
+import pixeljelly.scanners.Location;
+import pixeljelly.scanners.RasterScanner;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
-import java.awt.image.WritableRaster;
 
 import static pixeljelly.utilities.ColorUtilities.*;
 
@@ -17,9 +18,9 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
     private double shiftStrength;
 
     public ShiftOp() {
-        hueTarget = 0.33;
-        satScale = .6;
-        shiftStrength = 1;
+        hueTarget = .33;
+        satScale = 1;
+        shiftStrength = 2;
     }
 
     public ShiftOp(double hueTarget, double satScale, double shiftStrength) {
@@ -45,17 +46,18 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
         }
 
         BufferedImage hsv = getHSVImage(src);
+        double[] dubs = new double[3];
 
-        for (int i = 0; i < hsv.getWidth(); i++) {
-            for (int j = 0; j < hsv.getHeight(); j++) {
-                //        < hShift(H, hueTarget), Y * satScale, V >
-                double[] hsvVals = hsv.getRaster().getPixel(i, j, new double[3]);
-                hsvVals[0] = hShift(hsvVals[0] / 255) * 255;
-                hsvVals[1] = clamp(hsvVals[1] * (satScale));
-                dest.getRaster().setPixel(i, j, hsvVals);
-            }
+        for (Location pt : new RasterScanner(src, false)) {
+            //        < hShift(H, hueTarget), Y * satScale, V >
+            double[] hsvVals = hsv.getRaster().getPixel(pt.col, pt.row, dubs);
+            hsvVals[0] = hShift(hsvVals[0] / 255) * 255;
+            hsvVals[1] = clamp(hsvVals[1] * (satScale));
+
+            hsv.getRaster().setPixel(pt.col, pt.row, hsvVals);
         }
-        return getRGBImage(dest);
+
+        return hsvToImage(hsv, dest);
     }
 
     private double hShift(double h) {
@@ -77,59 +79,52 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
         double out;
         if (clockwise) {
             // Subtracting is clockwise!
-            out = h - Math.pow(dH, shiftStrength);
+            out = h - Math.pow(dH, shiftStrength) / 2;
 
             // If you went past 0, wrap around
-            if (out < 0) out += 1;
+            if (out <= 0) out += 1;
         } else {
             // Adding is counter-clockwise!
-            out = h + Math.pow(dH, shiftStrength);
+            out = h + Math.pow(dH, shiftStrength) / 2;
 
             // If you went past 1, wrap around
-            if(out > 1) out -= 1;
+            if (out >= 1) out -= 1;
         }
 
         return out;
     }
 
     private BufferedImage getHSVImage(BufferedImage src) {
-        BufferedImage dest = new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
-        for (int x = 0; x < src.getWidth(); x++) {
-            for (int y = 0; y < src.getHeight(); y++) {
-                float[] rgb = src.getRaster().getPixel(x, y, new float[3]);
-                rgb[0] /= 255;
-                rgb[1] /= 255;
-                rgb[2] /= 255;
-                float[] hsv = RGBtoHSV(rgb);
-                hsv[0] *= 255;
-                hsv[1] *= 255;
-                hsv[2] *= 255;
-                dest.getRaster().setPixel(x, y, hsv);
-            }
+        BufferedImage dest = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
+        for (Location pt : new RasterScanner(src, false)) {
+            int rgb1 = src.getRGB(pt.col, pt.row);
+            float[] rgb = new float[3];
+            rgb[0] = (rgb1 >> 16 & 0xFF) / 255.0F;
+            rgb[1] = (rgb1 >> 8 & 0xFF) / 255.0F;
+            rgb[2] = (rgb1 & 0xFF) / 255.0F;
+            float[] hsv = RGBtoHSV(rgb);
+            hsv[0] *= 255;
+            hsv[1] *= 255;
+            hsv[2] *= 255;
+            dest.getRaster().setPixel(pt.col, pt.row, hsv);
         }
 
         return dest;
     }
 
-    private BufferedImage getRGBImage(BufferedImage src) {
-        BufferedImage rgbImg = new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
-        WritableRaster srcRaster = src.getRaster();
-        WritableRaster rgbImgRaster = rgbImg.getRaster();
-        for (int i = 0; i < srcRaster.getWidth(); i++) {
-            for (int j = 0; j < srcRaster.getHeight(); j++) {
-                float[] hsv = src.getRaster().getPixel(i, j, new float[3]);
-                hsv[0] /= 255;
-                hsv[1] /= 255;
-                hsv[2] /= 255;
-                float[] rgb = HSVtoRGB(hsv);
-                rgb[0] *= 255;
-                rgb[1] *= 255;
-                rgb[2] *= 255;
-                rgbImgRaster.setPixel(i, j, rgb);
-            }
+    private BufferedImage hsvToImage(BufferedImage src, BufferedImage dest) {
+        for (Location pt : new RasterScanner(src, false)) {
+            float[] hsv = src.getRaster().getPixel(pt.col, pt.row, new float[3]);
+            hsv[0] /= 255;
+            hsv[1] /= 255;
+            hsv[2] /= 255;
+            float[] rgb = HSVtoRGB(hsv);
+
+            int outRgb = (int) (rgb[0] * 255) << 16 | (int) (rgb[1] * 255) << 8 | (int) (rgb[2] * 255);
+            dest.setRGB(pt.col, pt.row, outRgb);
         }
-        rgbImg.setData(rgbImgRaster);
-        return rgbImg;
+
+        return dest;
     }
 
     public double getSatScale() {

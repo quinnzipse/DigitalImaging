@@ -10,7 +10,6 @@ import pixeljelly.scanners.RasterScanner;
 import pixeljelly.utilities.ImagePadder;
 import pixeljelly.utilities.ReflectivePadder;
 
-import java.awt.color.ColorSpace;
 import java.awt.image.*;
 
 import static pixeljelly.utilities.ColorUtilities.*;
