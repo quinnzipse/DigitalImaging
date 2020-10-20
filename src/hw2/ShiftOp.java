@@ -118,10 +118,8 @@ public class ShiftOp extends NullOp implements PluggableImageOp {
             hsv[0] /= 255;
             hsv[1] /= 255;
             hsv[2] /= 255;
-            float[] rgb = HSVtoRGB(hsv);
 
-            int outRgb = (int) (rgb[0] * 255) << 16 | (int) (rgb[1] * 255) << 8 | (int) (rgb[2] * 255);
-            dest.setRGB(pt.col, pt.row, outRgb);
+            dest.setRGB(pt.col, pt.row, HSVtoPackedRGB(hsv));
         }
 
         return dest;

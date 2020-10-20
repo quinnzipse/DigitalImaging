@@ -2,13 +2,14 @@ package hw2;
 
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
+import pixeljelly.scanners.Location;
+import pixeljelly.scanners.RasterScanner;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
-import java.awt.image.WritableRaster;
 
-import static pixeljelly.utilities.ColorUtilities.HSVtoRGB;
+import static pixeljelly.utilities.ColorUtilities.HSVtoPackedRGB;
 import static pixeljelly.utilities.ColorUtilities.RGBtoHSV;
 
 
@@ -17,10 +18,10 @@ public class ColorHighlightOp extends NullOp implements PluggableImageOp {
     private Color targetColor;
 
     public ColorHighlightOp() {
-        targetColor = Color.red;
+        targetColor = new Color(220, 50, 50);
     }
 
-    public ColorHighlightOp( Color targetColor) {
+    public ColorHighlightOp(Color targetColor) {
         this.targetColor = targetColor;
     }
 
@@ -40,51 +41,29 @@ public class ColorHighlightOp extends NullOp implements PluggableImageOp {
             dest = new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
         }
 
-        BufferedImage hsv = getHSVImage(src);
+        float[] targetHSV = RGBtoHSV(targetColor);
 
-        for (int i = 0; i < hsv.getWidth(); i++) {
-            for (int j = 0; j < hsv.getHeight(); j++) {
-                // < H, min(1, S * 1.1 * e^(-3*D), V >
-                // D can be calculated by finding the normalized L2 distance between TargetColor and src pixel.
-            }
-        }
-        return dest;
-    }
+        for (Location pt : new RasterScanner(src, false)) {
+            float[] hsvVals = RGBtoHSV(src.getRGB(pt.col, pt.row));
 
-    private BufferedImage getHSVImage(BufferedImage src) {
-        BufferedImage dest = new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
-        for (int x = 0; x < src.getWidth(); x++) {
-            for (int y = 0; y < src.getHeight(); y++) {
-                float[] rgb = src.getRaster().getPixel(x, y, new float[3]);
-                rgb[0] /= 255;
-                rgb[1] /= 255;
-                rgb[2] /= 255;
-                float[] hsv = RGBtoHSV(rgb);
-                hsv[0] *= 255;
-                hsv[1] *= 255;
-                hsv[2] *= 255;
-                dest.getRaster().setPixel(x, y, hsv);
-            }
+            hsvVals[1] = (float) (calcSaturation(targetHSV, hsvVals, hsvVals[1]));
+
+            dest.setRGB(pt.col, pt.row, HSVtoPackedRGB(hsvVals));
         }
 
         return dest;
     }
 
-    private BufferedImage getRGBImage(BufferedImage src) {
-        BufferedImage rgbImg = new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
-        WritableRaster srcRaster = src.getRaster();
-        WritableRaster rgbImgRaster = rgbImg.getRaster();
-        for (int i = 0; i < srcRaster.getWidth(); i++) {
-            for (int j = 0; j < srcRaster.getHeight(); j++) {
-                float[] rgb = HSVtoRGB(src.getRaster().getPixel(i, j, new float[3]));
-                rgb[0] *= 255;
-                rgb[1] *= 255;
-                rgb[2] *= 255;
-                rgbImgRaster.setPixel(i, j, rgb);
-            }
-        }
-        rgbImg.setData(rgbImgRaster);
-        return rgbImg;
+    private double calcSaturation(float[] hsv1, float[] hsv2, float saturation) {
+        return Math.min(1, saturation * 1.1 * Math.pow(Math.E, -3 * calcL2Distance(hsv1, hsv2)));
+    }
+
+    private double calcL2Distance(float[] hsv1, float[] hsv2) {
+        double distance = Math.sqrt(0 +
+                Math.pow(hsv1[1] * Math.cos(2 * Math.PI * hsv1[0]) - hsv2[1] * Math.cos(2 * Math.PI * hsv2[0]), 2)
+                + Math.pow(hsv1[1] * Math.sin(2 * Math.PI * hsv1[0]) - hsv2[1] * Math.sin(2 * Math.PI * hsv2[0]), 2)
+                + Math.pow(hsv1[2] - hsv2[2], 2));
+        return (distance / Math.sqrt(5));
     }
 
     public Color getTargetColor() {
