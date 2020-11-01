@@ -1,7 +1,5 @@
 package hw2;
 
-import pixeljelly.features.Histogram;
-import pixeljelly.ops.BrightnessBandExtractOp;
 import pixeljelly.ops.HistogramEqualizeOp;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
@@ -15,9 +13,10 @@ import java.awt.image.*;
 import static pixeljelly.utilities.ColorUtilities.*;
 
 public class LocalEqualizeOp extends NullOp implements PluggableImageOp {
-    private final int w;
-    private final int h;
-    private boolean isBanded;
+    private int w;
+    private int h;
+    private boolean brightnessOnly;
+    private static final ImagePadder padder = ReflectivePadder.getInstance();
 
     public LocalEqualizeOp() {
         this(5, 5, true);
@@ -26,7 +25,7 @@ public class LocalEqualizeOp extends NullOp implements PluggableImageOp {
     public LocalEqualizeOp(int w, int h, boolean brightnessBandOnly) {
         this.w = w;
         this.h = h;
-        this.isBanded = !brightnessBandOnly;
+        this.brightnessOnly = brightnessBandOnly;
     }
 
     @Override
@@ -39,27 +38,69 @@ public class LocalEqualizeOp extends NullOp implements PluggableImageOp {
         return "Quinn Zipse";
     }
 
+    public int getH() {
+        return h;
+    }
+
+    public int getW() {
+        return w;
+    }
+
+    public void setBrightnessOnly(boolean brightnessOnly) {
+        this.brightnessOnly = brightnessOnly;
+    }
+
+    public boolean getBrightnessOnly() {
+        return brightnessOnly;
+    }
+
+    public void setH(int h) {
+        this.h = h;
+    }
+
+    public void setW(int w) {
+        this.w = w;
+    }
+
     @Override
     public BufferedImage filter(BufferedImage src, BufferedImage dest) {
         if (dest == null) {
             dest = createCompatibleDestImage(src, src.getColorModel());
         }
 
+        if (this.brightnessOnly) {
+            return filterBrightnessOnly(src);
+        } else {
+            return filterAllBands(src, dest);
+        }
+
+    }
+
+    private BufferedImage filterAllBands(BufferedImage src, BufferedImage dest) {
+
+        for (Location pt : new RasterScanner(src, false)) {
+            BufferedImage img = getSubImage(src, pt.col, pt.row);
+            img = (new HistogramEqualizeOp(1)).filter(img, null);
+            dest.setRGB(pt.col, pt.row, img.getRGB((int) Math.ceil(w / 2.0), (int) Math.ceil(h / 2.0)));
+        }
+
+        return dest;
+    }
+
+    private BufferedImage filterBrightnessOnly(BufferedImage src) {
         BufferedImage hsv = getHSVImage(src);
 
-        for (Location pt : new RasterScanner(hsv, true)) {
+        for (Location pt : new RasterScanner(hsv, false)) {
             BufferedImage img = getBrightnessSubImage(hsv, pt.col, pt.row);
             img = (new HistogramEqualizeOp(1)).filter(img, null);
             hsv.getRaster().setSample(pt.col, pt.row, 2, img.getRaster().getSample((int) Math.ceil(w / 2.0), (int) Math.ceil(h / 2.0), 0));
         }
 
         return getRGBImage(hsv);
-
     }
 
     private BufferedImage getBrightnessSubImage(BufferedImage src, int i, int j) {
         BufferedImage subImg = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY);
-        ImagePadder padder = ReflectivePadder.getInstance();
         for (int x = -(w / 2); x <= (w / 2); x++) {
             for (int y = -(h / 2); y <= (h / 2); y++) {
                 subImg.getRaster().setSample(x + (w / 2), y + (h / 2), 0, padder.getSample(src, i + x, j + y, 2));
@@ -69,11 +110,18 @@ public class LocalEqualizeOp extends NullOp implements PluggableImageOp {
         return subImg;
     }
 
-    private BufferedImage equalize(BufferedImage src, int band) {
-        Histogram histogram = new Histogram(src, band);
-        LookupOp op = new LookupOp(new ByteLookupTable(0, histogram.toCDFArray()), null);
+    private BufferedImage getSubImage(BufferedImage src, int i, int j) {
+        BufferedImage subImg = new BufferedImage(w, h, src.getType());
 
-        return op.filter(src, null);
+        for (int x = -(w / 2); x <= (w / 2); x++) {
+            for (int y = -(h / 2); y <= (h / 2); y++) {
+                for (int b = 0; b < src.getRaster().getNumBands(); b++) {
+                    subImg.getRaster().setSample(x + (w / 2), y + (h / 2), b, padder.getSample(src, i + x, j + y, b));
+                }
+            }
+        }
+
+        return subImg;
     }
 
     private BufferedImage getHSVImage(BufferedImage src) {
