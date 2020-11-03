@@ -62,6 +62,7 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
             // write MED to DEST
             for (int b = 0; b < BANDS; b++) {
                 medians[b] = getMedian(histograms[b]);
+                System.out.println(medians[b]);
                 cdf[b] = getCDF(histograms[b], cdf[b]);
             }
 
@@ -87,12 +88,15 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
 
                 // find the median value MED by scanning higher or lower depending on the values that have been removed/added
                 for (int b = 0; b < BANDS; b++) {
+                    System.out.println(medians[0] + ", " + medians[1] + ", " + medians[2]);
                     cdf[b] = getCDF(histograms[b], cdf[b]);
                     //error?
                     while (cdf[b][medians[b]] < m * n / 2) {
+                        System.out.println(medians[b]);
                         medians[b]++;
                     }
                     while (cdf[b][medians[b] - 1] >= m * n / 2) {
+                        System.err.println(medians[b]);
                         medians[b]--;
                     }
                 }
@@ -103,14 +107,14 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
                 }
             }
         }
-        return super.filter(src, dest);
+        return dest;
     }
 
     private int getMedian(int[] histogram) {
         int totalSamples = m * n;
         int countedSamples = 0;
         int i = 0;
-
+        System.out.println(totalSamples);
         while (countedSamples < totalSamples / 2) {
             countedSamples += histogram[i];
             i++;
