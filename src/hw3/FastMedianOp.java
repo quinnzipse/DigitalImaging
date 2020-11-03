@@ -37,9 +37,10 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
         if (dest == null) {
             dest = createCompatibleDestImage(src, src.getColorModel());
         }
+        final int BANDS = src.getRaster().getNumBands();
 
         // Assumes RGB 24bpp Image.
-        int[][] histograms = new int[3][256];
+        int[][] histograms = new int[BANDS][256];
 
         // for every row R of the src (top-to-bottom)
         for (int r = 0; r < src.getHeight(); r++) {
@@ -48,91 +49,64 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
             ImagePadder padder = ReflectivePadder.getInstance();
             for (int y = -n / 2; y < n / 2; y++) {
                 for (int x = -m / 2; x < m / 2; x++) {
-                    for (int b = 0; b < 3; b++) {
+                    for (int b = 0; b < BANDS; b++) {
                         histograms[b][padder.getSample(src, y, x, b)]++;
                     }
                 }
             }
 
-
             // find the median value MED by examining H
-            int[] rMED_CDF = getMedian(rH);
-            int[] gMED_CDF = getMedian(gH);
-            int[] bMED_CDF = getMedian(bH);
+            int[] medians = new int[BANDS];
+            int[][] cdf = new int[BANDS][256];
 
             // write MED to DEST
-            dest.getRaster().setSample(0, r, 0, rMED_CDF[0]);
-            dest.getRaster().setSample(0, r, 1, gMED_CDF[0]);
-            dest.getRaster().setSample(0, r, 2, bMED_CDF[0]);
+            for (int b = 0; b < BANDS; b++) {
+                medians[b] = getMedian(histograms[b]);
+                cdf[b] = getCDF(histograms[b], cdf[b]);
+            }
+
+            int sample;
 
             // for every remaining column C of R (left-to-right)
             for (int c = 0; c < src.getWidth(); c++) {
                 // update H by removing the value in the left most column of the previous region
                 for (int remove = -n / 2; remove < n / 2; remove++) {
-                    int rN = padder.getSample(src, r + remove, c, 0);
-                    rH[rN]--;
-                    if (rN < rMED_CDF[0]) rMED_CDF[1]--;
-
-                    int gN = padder.getSample(src, r + remove, c, 1);
-                    gH[gN]--;
-                    if (gN < gMED_CDF[0]) gMED_CDF[1]--;
-
-                    int bN = padder.getSample(src, r + remove, c, 2);
-                    bH[bN]--;
-                    if (bN < bMED_CDF[0]) bMED_CDF[1]--;
+                    for (int b = 0; b < BANDS; b++) {
+                        sample = padder.getSample(src, r + remove, c - n / 2, b);
+                        histograms[b][sample]--;
+                    }
                 }
 
                 // update H by adding the values in the right most column of the current region.
                 for (int remove = -n / 2; remove < n / 2; remove++) {
-                    int rN = padder.getSample(src, r + remove, c, 0);
-                    rH[rN]++;
-                    if (rN > rMED_CDF[0]) rMED_CDF[1]++;
-
-                    int gN = padder.getSample(src, r + remove, c, 1);
-                    gH[gN]++;
-                    if (gN > gMED_CDF[0]) gMED_CDF[1]++;
-
-                    int bN = padder.getSample(src, r + remove, c, 2);
-                    bH[bN]++;
-                    if (bN < bMED_CDF[0]) bMED_CDF[1]++;
+                    for (int b = 0; b < BANDS; b++) {
+                        sample = padder.getSample(src, r + remove, c + n / 2, b);
+                        histograms[b][sample]++;
+                    }
                 }
 
                 // find the median value MED by scanning higher or lower depending on the values that have been removed/added
-                while (rMED_CDF[1] < Math.ceil(m * n / 2.0)) {
-                    rMED_CDF[1] += rH[rMED_CDF[0]];
-                    rMED_CDF[0]++;
-                }
-                while (rMED_CDF[1] - rH[rMED_CDF[0]] >= Math.ceil(m * n / 2.0)) {
-                    rMED_CDF[1] -= rH[rMED_CDF[0]];
-                    rMED_CDF[0]--;
-                }
-                while (gMED_CDF[1] < Math.ceil(m * n / 2.0)) {
-                    gMED_CDF[1] += gH[gMED_CDF[0]];
-                    gMED_CDF[0]++;
-                }
-                while (gMED_CDF[1] - gH[gMED_CDF[0]] >= Math.ceil(m * n / 2.0)) {
-                    gMED_CDF[1] -= gH[gMED_CDF[0]];
-                    gMED_CDF[0]--;
-                }
-                while (bMED_CDF[1] < Math.ceil(m * n / 2.0)) {
-                    bMED_CDF[1] += bH[bMED_CDF[0]];
-                    bMED_CDF[0]++;
-                }
-                while (bMED_CDF[1] - bH[gMED_CDF[0]] >= Math.ceil(m * n / 2.0)) {
-                    bMED_CDF[1] -= bH[gMED_CDF[0]];
-                    bMED_CDF[0]--;
+                for (int b = 0; b < BANDS; b++) {
+                    cdf[b] = getCDF(histograms[b], cdf[b]);
+                    //error?
+                    while (cdf[b][medians[b]] < m * n / 2) {
+                        medians[b]++;
+                    }
+                    while (cdf[b][medians[b] - 1] >= m * n / 2) {
+                        medians[b]--;
+                    }
                 }
 
                 // write MED to DEST
-                dest.getRaster().setSample(c, r, 0, rMED_CDF[0]);
-                dest.getRaster().setSample(c, r, 1, gMED_CDF[0]);
-                dest.getRaster().setSample(c, r, 2, bMED_CDF[0]);
+                for (int b = 0; b < BANDS; b++) {
+                    dest.getRaster().setSample(r, c, b, medians[b]);
+                }
             }
         }
         return super.filter(src, dest);
     }
 
-    private int[] getMedian(int[] histogram) {
+    private int getMedian(int[] histogram) {
         int totalSamples = m * n;
         int countedSamples = 0;
         int i = 0;
@@ -142,6 +116,17 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
             i++;
         }
 
-        return new int[]{i, countedSamples};
+        return i;
+    }
+
+    private int[] getCDF(int[] histogram, int[] cdf) {
+        cdf[0] = histogram[0];
+
+        for (int i = 1; i < cdf.length; i++) {
+            cdf[i] += cdf[i - 1] + histogram[i];
+            i++;
+        }
+
+        return cdf;
     }
 }
