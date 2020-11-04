@@ -1,5 +1,6 @@
 package hw3;
 
+import pixeljelly.features.Histogram;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
 import pixeljelly.utilities.ImagePadder;
@@ -47,13 +48,16 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
 
             // set H to be the histogram of the NxN region of first sample
             ImagePadder padder = ReflectivePadder.getInstance();
-            for (int y = -n / 2; y < n / 2; y++) {
-                for (int x = -m / 2; x < m / 2; x++) {
-                    for (int b = 0; b < BANDS; b++) {
-                        histograms[b][padder.getSample(src, y, x, b)]++;
-                    }
-                }
-            }
+            BufferedImage sub = src.getSubimage(-m / 2, r - n / 2, m, n);
+//            for (int y = -n / 2; y < n / 2; y++) {
+//                for (int x = -m / 2; x < m / 2; x++) {
+//                    for (int b = 0; b < BANDS; b++) {
+//                        histograms[b][padder.getSample(src, y, x, b)]++;
+//                    }
+//                }
+//            }
+
+            Histogram hist = new Histogram(sub, 1);
 
             // find the median value MED by examining H
             int[] medians = new int[BANDS];
