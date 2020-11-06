@@ -1,37 +1,34 @@
 package hw3;
 
-import java.awt.image.ColorModel;
+import org.ujmp.core.Matrix;
 
 public class SimilarityMatrix {
-    private int rn, gn, bn;
-    private ColorModel colorModel;
-    private int[][] matrix;
+    private final int rn;
+    private final int gn;
+    private final int bn;
+    private final float[][] matrix;
 
-    public SimilarityMatrix(int rn, int gn, int bn, ColorModel colorModel) {
+    public SimilarityMatrix(int rn, int gn, int bn) {
         if (rn + gn + bn > 10) throw new IllegalArgumentException("band resolution must add up to 10 or less.");
         this.rn = rn;
         this.gn = gn;
         this.bn = bn;
-        this.colorModel = colorModel;
         this.matrix = generateMatrix();
     }
 
-    private int[][] generateMatrix() {
-        int[][] a = new int[rn * gn * bn][rn * gn * bn];
-        for (int r = 0; r < rn; r++) {
-            for (int g = 0; g < gn; g++) {
-                for (int b = 0; b < bn; b++) {
-                    // I = r' * (NgNb) + G'Nb + B'
-                    int Ci = 0; // The color at the center of H[i]
-                    int Cj = 0; // The color at the center of H[j]
-                    a[r][g] = 1; // 1 - dist(C1, C2) / Max(A[i][j])
-                }
-            }
-        }
+    private float[][] generateMatrix() {
+        float[][] a = new float[rn * gn * bn][rn * gn * bn];
+//        for (int i = 0; i < a.length; i++) {
+//            // Rc = R'(256/Nr)+128/Nr
+//
+//            Color Ci = new Color(); // The color at the center of H[i]
+//            Color Cj = new Color(3, 3, 3); // The color at the center of H[j]
+//            a[r][g] = 1; // 1 - dist(C1, C2) / Max(A[i][j])
+//        }
         return a;
     }
 
-    public int[][] getMatrix() {
-        return matrix;
+    public Matrix getMatrix() {
+        return Matrix.Factory.importFromArray(matrix);
     }
 }
