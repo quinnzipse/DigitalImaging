@@ -18,9 +18,9 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
     private int medianThreshold;
     private final ImagePadder padder = ReflectivePadder.getInstance();
     private Rectangle scanBounds;
-    private int[] histogram;
-    private int median;
-    private int oldCDF;
+    private int[][] histograms;
+    private int[] medians;
+    private int[] oldCDFs;
 
     public FastMedianOp() {
 
@@ -49,69 +49,83 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
             dest = createCompatibleDestImage(src, src.getColorModel());
         }
 
-        for (int b = 0; b < src.getSampleModel().getNumBands(); b++) {
-            histogram = new int[(int) Math.pow(2, src.getSampleModel().getSampleSize(b))];
+        // initialize everything dependant on the src image!
+        medians = new int[src.getSampleModel().getNumBands()];
+        oldCDFs = new int[src.getSampleModel().getNumBands()];
+        histograms = new int[src.getSampleModel().getNumBands()][(int) Math.pow(2, src.getSampleModel().getSampleSize(0))];
 
-            for (Location pt : new RasterScanner(src, false)) {
-                if (pt.col == 0) {
-                    // Generate a new histogram!
-                    histogram = new int[256];
-                    for (Location maskPt : new RasterScanner(scanBounds)) {
-                        int sample = padder.getSample(src, pt.col + maskPt.col, pt.row + maskPt.row, b);
-                        histogram[sample]++;
-                    }
+        for (Location pt : new RasterScanner(src, true)) {
+            if (pt.col == 0) {
+                // create a new histogram.
+                createHistogram(src, pt.band, pt);
 
-                    // Compute the median and CDF Value.
-                    median = 0;
-                    oldCDF = histogram[median];
-                    while (oldCDF < medianThreshold && median < 255) {
-                        median++;
-                        oldCDF += histogram[median];
-                    }
-                } else {
-                    // Update the existing histogram!
-                    updateHistogram(src, b, pt);
+                findInitMedianCDF(pt.band);
+            } else {
+                // Update the existing histogram!
+                updateHistogram(src, pt.band, pt);
 
-                    // CDF if greater than or equal to the median.
-                    // iterate down the histogram.
-                    while (median > 0 && oldCDF - histogram[median] >= medianThreshold) {
-                        oldCDF -= histogram[median];
-                        median--;
-                    }
-
-                    // CDF is less than 5
-                    // iterate up the histogram.
-                    while (median < 255 && oldCDF < medianThreshold) {
-                        median++;
-                        oldCDF += histogram[median];
-                    }
-                }
-
-                dest.getRaster().setSample(pt.col, pt.row, b, median);
+                updateMedianCDF(pt.band);
             }
+
+            dest.getRaster().setSample(pt.col, pt.row, pt.band, medians[pt.band]);
         }
 
         return dest;
+    }
+
+    private void updateMedianCDF(int b) {
+        // CDF if greater than or equal to the median.
+        // iterate down the histogram.
+        while (medians[b] > 0 && oldCDFs[b] - histograms[b][medians[b]] >= medianThreshold) {
+            oldCDFs[b] -= histograms[b][medians[b]];
+            medians[b]--;
+        }
+
+        // CDF is less than 5
+        // iterate up the histogram.
+        while (medians[b] < 255 && oldCDFs[b] < medianThreshold) {
+            medians[b]++;
+            oldCDFs[b] += histograms[b][medians[b]];
+        }
+    }
+
+    private void findInitMedianCDF(int b) {
+        // Compute the median and CDF Value.
+        medians[b] = 0;
+        oldCDFs[b] = histograms[b][medians[b]];
+        while (oldCDFs[b] < medianThreshold && medians[b] < 255) {
+            medians[b]++;
+            oldCDFs[b] += histograms[b][medians[b]];
+        }
+    }
+
+    private void createHistogram(BufferedImage src, int b, Location pt) {
+        // Generate a new histogram!
+        histograms[b] = new int[256];
+        for (Location maskPt : new RasterScanner(scanBounds)) {
+            int sample = padder.getSample(src, pt.col + maskPt.col, pt.row + maskPt.row, b);
+            histograms[b][sample]++;
+        }
     }
 
     private void updateHistogram(BufferedImage src, int b, Location pt) {
         for (int yOff = scanBounds.y; yOff <= -scanBounds.y; yOff++) {
             // Remove the previous column.
             int removed = padder.getSample(src, pt.col + scanBounds.x, pt.row + yOff, b);
-            histogram[removed]--;
+            histograms[b][removed]--;
 
             // Check to see if the cdf changed.
-            if (removed <= median) {
-                oldCDF--;
+            if (removed <= medians[b]) {
+                oldCDFs[b]--;
             }
 
             // Add the next column
             int added = padder.getSample(src, pt.col - scanBounds.x, pt.row + yOff, b);
-            histogram[added]++;
+            histograms[b][added]++;
 
             // Check to see if the cdf changed.
-            if (added <= median) {
-                oldCDF++;
+            if (added <= medians[b]) {
+                oldCDFs[b]++;
             }
         }
     }
