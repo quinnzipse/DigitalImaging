@@ -2,6 +2,8 @@ package hw3;
 
 import org.ujmp.core.Matrix;
 
+import java.awt.*;
+
 public class SimilarityMatrix {
     private final int rn;
     private final int gn;
@@ -18,13 +20,12 @@ public class SimilarityMatrix {
 
     private float[][] generateMatrix() {
         float[][] a = new float[rn * gn * bn][rn * gn * bn];
-//        for (int i = 0; i < a.length; i++) {
-//            // Rc = R'(256/Nr)+128/Nr
-//
-//            Color Ci = new Color(); // The color at the center of H[i]
-//            Color Cj = new Color(3, 3, 3); // The color at the center of H[j]
-//            a[r][g] = 1; // 1 - dist(C1, C2) / Max(A[i][j])
-//        }
+        for (int i = 0; i < a.length; i++) {
+            for (int j = 0; j < a.length; j++) {
+                Color c1 = new Color(i / (gn * bn), i / bn % gn, i % bn);
+                Color c2 = new Color(j / (gn * bn), j / bn % gn, j % bn);
+            }
+        }
         return a;
     }
 
