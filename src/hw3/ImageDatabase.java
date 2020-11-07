@@ -150,7 +150,7 @@ public class ImageDatabase {
             float[][] histogram = new float[bins][bins];
 
             for (int i = 0; i < bins; i++) {
-                histogram[i] = in.nextFloat();
+//                histogram[i] = in.nextFloat();
             }
 
             // Process it.
