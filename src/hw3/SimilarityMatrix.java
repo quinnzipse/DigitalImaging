@@ -2,6 +2,12 @@ package hw3;
 
 import org.ujmp.core.Matrix;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
 public class SimilarityMatrix {
     private final int rn;
     private final int gn;
@@ -41,6 +47,34 @@ public class SimilarityMatrix {
         }
 
         return a;
+    }
+
+    public void write(FileWriter out) throws IOException {
+        for (double[] row : matrix) {
+            StringBuilder sb = new StringBuilder();
+            for (double col : row) {
+                sb.append(String.format("%.20f", col));
+                sb.append(" ");
+            }
+            out.write(sb.toString());
+        }
+    }
+
+    public static SimilarityMatrix read(Scanner in, int rn, int gn, int bn) {
+        SimilarityMatrix similarityMatrix = new SimilarityMatrix(rn, gn, bn);
+
+        // Read in the stored similarity matrix.
+        for (int i = 0; i < similarityMatrix.matrix.length; i++) {
+            double[] row = new double[similarityMatrix.matrix.length];
+
+            for (int x = 0; x < row.length; x++) {
+                row[x] = in.nextDouble();
+            }
+
+            similarityMatrix.matrix[i] = row;
+        }
+
+        return similarityMatrix;
     }
 
     private int getRGB(int index) {

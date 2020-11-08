@@ -30,7 +30,7 @@ public class ImageDatabase {
                 // java ImageDatabase query https://charity.cs.uwlax.edu/views/cs454/homeworks/hw3/red-frog.png db-1-1-1.txt query-result-1-1-1-rgb.html 150
                 if (args.length != 5)
                     throw new IllegalArgumentException("Invalid number of arguments. Expected 7 got " + args.length);
-                compare(args[1], args[2], args[3], Integer.parseInt(args[4]));
+                query(args[1], args[2], args[3], Integer.parseInt(args[4]));
         }
     }
 
@@ -38,15 +38,13 @@ public class ImageDatabase {
     private final int yN;
     private final int zN; //rgb num bands.
     private final int bins;
-    private final Matrix similarityMatrix;
+    private SimilarityMatrix similarityMatrix;
 
     ImageDatabase(int xN, int yN, int zN) {
         this.xN = xN;
         this.yN = yN;
         this.zN = zN;
         this.bins = (int) Math.pow(2, this.xN + this.yN + this.zN);
-
-        similarityMatrix = (new SimilarityMatrix(xN, yN, zN)).getMatrix();
     }
 
     public double[] makeColorHistogram(BufferedImage src) {
@@ -85,6 +83,9 @@ public class ImageDatabase {
         writer.write(yN + " ");
         writer.write(zN + "\n");
 
+        database.similarityMatrix = new SimilarityMatrix(xN, yN, zN);
+        database.similarityMatrix.write(writer);
+
         Scanner scanner = new Scanner(new File(srcFile));
 
         while (scanner.hasNext()) {
@@ -94,7 +95,8 @@ public class ImageDatabase {
 
             // Grab the pictures URL and turn it into a buffered image.
             try {
-                URL picURL = new URL(scanner.next());
+                String imgUrl = scanner.next();
+                URL picURL = new URL(imgUrl);
                 BufferedImage img = ImageIO.read(picURL);
 
                 double[] histogram = database.makeColorHistogram(img);
@@ -102,12 +104,12 @@ public class ImageDatabase {
                 StringBuilder sb = new StringBuilder();
                 sb.append(creator);
                 sb.append(thumbnail);
-                sb.append(picURL.getPath());
+                sb.append(imgUrl);
                 sb.append(" ");
 
                 for (double h : histogram) {
                     if (h == 0) sb.append("0 ");
-                    else sb.append(String.format("%.15f ", h));
+                    else sb.append(String.format("%.20f ", h));
                 }
 
                 sb.append("\n");
@@ -115,59 +117,57 @@ public class ImageDatabase {
                 writer.write(sb.toString());
                 writer.flush();
             } catch (Exception e) {
-                System.out.println("Skipping Image! Reason: " + e.getMessage());
+                System.out.println("Skipping Image! Reason: " + e.getMessage() + " More Info: " + e.getClass().getName());
             }
         }
 
         writer.close();
     }
 
-    public static void compare(String imgURL, String src, String dest, int limit) throws IOException {
+    public static void query(String imgURL, String src, String dest, int limit) throws IOException {
         SortedListSet<ImageSimilarity> similarityList = new SortedListSet<>();
         Scanner in = new Scanner(new File(src));
 
         ImageDatabase imageProps = new ImageDatabase(in.nextInt(), in.nextInt(), in.nextInt());
+        imageProps.similarityMatrix = SimilarityMatrix.read(in, imageProps.xN, imageProps.yN, imageProps.zN);
 
         // Get the image from the internet.
         URL url = new URL(imgURL);
         BufferedImage img = ImageIO.read(url);
 
-        // Make the image to compare into a color histogram!
-        double[] srcHisto = imageProps.makeColorHistogram(img);
-
-        // convert the histogram to a matrix.
-        Matrix h1 = createNx1(imageProps.bins, srcHisto);
+        // convert the image to a histogram matrix.
+        Matrix h1 = createNx1(imageProps.bins, imageProps.makeColorHistogram(img));
 
         // While we have more images...
         while (in.hasNext()) {
-            // Get the information.
-            String creator = in.next();
-            String thumbnail = in.next();
-            String imageURL = in.next();
-
-            // Create the matrix for the specific histogram!
-            Matrix h2 = DenseMatrix.Factory.zeros(imageProps.bins, 1);
-
-            for (int i = 0; i < imageProps.bins; i++) {
-                h2.setAsDouble(in.nextDouble(), i, 0);
-            }
-
-            Matrix hdiff = h1.minus(h2);
-
-            // Calculate the similarity between the images.
-            Matrix outMatrix = hdiff.transpose().mtimes(imageProps.similarityMatrix).mtimes(hdiff);
-
-            // This is the distance!
-            double diff = Math.abs(outMatrix.toDoubleArray()[0][0]);
-
-            similarityList.add(new ImageSimilarity(diff, creator, thumbnail, imageURL));
+            // Compare them and add the comparison to the list.
+            similarityList.add(compareImage(in, imageProps, h1));
         }
 
         writeOut(similarityList.subList(0, limit), dest, imgURL);
     }
 
-    private List<String[]> getImageHistograms(Scanner in) {
-        return null;
+    private static ImageSimilarity compareImage(Scanner in, ImageDatabase imageProps, Matrix h1) {
+        // Get the information.
+        String creator = in.next();
+        String thumbnail = in.next();
+        String imageURL = in.next();
+
+        // Create the matrix for the specific histogram!
+        Matrix h2 = DenseMatrix.Factory.zeros(imageProps.bins, 1);
+
+        for (int i = 0; i < imageProps.bins; i++) {
+            h2.setAsDouble(in.nextDouble(), i, 0);
+        }
+
+        Matrix hdiff = h1.minus(h2);
+
+        // Calculate the distance between the images.
+        Matrix outMatrix = hdiff.transpose().mtimes(imageProps.similarityMatrix.getMatrix()).mtimes(hdiff);
+
+        double distance = Math.abs(outMatrix.toDoubleArray()[0][0]);
+
+        return new ImageSimilarity(distance, creator, thumbnail, imageURL);
     }
 
     private static void writeOut(List<ImageSimilarity> similarities, String dest, String imgURL) throws IOException {
@@ -180,8 +180,9 @@ public class ImageDatabase {
 
         // Write out each similarity object.
         for (ImageSimilarity similarity : similarities) {
+            System.out.println(similarity.image);
             out.write("<div class=\"img\"><a href=\"" + similarity.author + "\" " +
-                    "class=\"flickr\"></a><a href=\"" + similarity.image + "\">" +
+                    "class=\"flickr\"></a><a href=\"https://farm5.static.flickr.com/" + similarity.image + "\">" +
                     "<img src=\"" + similarity.thumbnail + "\"></a>" +
                     "<div class=\"distance\">" + String.format("%.6f", similarity.distance) + "</div></div>");
         }
