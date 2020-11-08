@@ -20,25 +20,32 @@ import java.util.Scanner;
 import java.util.function.DoubleConsumer;
 
 public class ImageDatabase {
-    public static void main(String[] args) throws Exception {
-        if (args.length < 1) throw new IllegalArgumentException("Invalid number of arguments.");
-        switch (args[0].toLowerCase()) {
-            case "create":
-                if (args.length != 7)
-                    throw new IllegalArgumentException("Invalid number of arguments. Expected 7 got " + args.length);
-                createDatabase(Integer.parseInt(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), args[4], args[5]);
-                break;
-            case "query":
-                // java ImageDatabase query https://charity.cs.uwlax.edu/views/cs454/homeworks/hw3/red-frog.png db-1-1-1.txt query-result-1-1-1-rgb.html 150
-                if (args.length != 5)
-                    throw new IllegalArgumentException("Invalid number of arguments. Expected 7 got " + args.length);
-                query(args[1], args[2], args[3], Integer.parseInt(args[4]));
+    public static void main(String[] args) {
+        try {
+            switch (args[0].toLowerCase()) {
+                case "create":
+                    int rBands = Integer.parseInt(args[1]),
+                            gBands = Integer.parseInt(args[2]),
+                            bBands = Integer.parseInt(args[3]);
+
+                    createDatabase(rBands, gBands, bBands, args[4], args[5]);
+                    break;
+                case "query":
+                    query(args[1], args[2], args[3], Integer.parseInt(args[4]));
+                    break;
+                default:
+                    throw new Exception();
+            }
+        } catch (Exception e) {
+            System.out.println("\nusage: ImageDatabase \n" +
+                    "\ncreate    <x-bands> <y-bands> <z-bands> <src-url-file> <output-db-file> <colorspace>" +
+                    "\nquery     <src-img-url> <db-file> <output-file> <limit>\n");
         }
     }
 
     private final int xN;
     private final int yN;
-    private final int zN; //rgb num bands.
+    private final int zN;
     private final int bins;
     private SimilarityMatrix similarityMatrix;
 
@@ -83,7 +90,6 @@ public class ImageDatabase {
         // convert the image to a histogram matrix.
         Matrix h1 = createNx1(imageProps.bins, imageProps.makeColorHistogram(img));
 
-        // While we have more images...
         while (in.hasNext()) {
             // Compare them and add the comparison to the list.
             similarityList.add(compareImage(in, imageProps, h1));
@@ -100,17 +106,13 @@ public class ImageDatabase {
 
         // Iterate through each pixel and increment the corresponding histogram bin.
         for (Location pt : new RasterScanner(src, false)) {
-            int red = raster.getSample(pt.col, pt.row, 0);
-            int green = raster.getSample(pt.col, pt.row, 1);
-            int blue = raster.getSample(pt.col, pt.row, 2);
-
             int xn = (int) Math.pow(2, this.xN);
             int yn = (int) Math.pow(2, this.yN);
             int zn = (int) Math.pow(2, this.zN);
 
-            int xP = (red * xn) / 256;
-            int yP = (green * yn) / 256;
-            int zP = (blue * zn) / 256;
+            int xP = raster.getSample(pt.col, pt.row, 0) * xn / 256;
+            int yP = raster.getSample(pt.col, pt.row, 1) * yn / 256;
+            int zP = raster.getSample(pt.col, pt.row, 2) * zn / 256;
 
             histogram[xP * yn * zn + yP * zn + zP]++;
         }
