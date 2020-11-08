@@ -56,14 +56,10 @@ public class FastMedianOp extends NullOp implements PluggableImageOp {
 
         for (Location pt : new RasterScanner(src, true)) {
             if (pt.col == 0) {
-                // create a new histogram.
                 createHistogram(src, pt.band, pt);
-
                 findInitMedianCDF(pt.band);
             } else {
-                // Update the existing histogram!
                 updateHistogram(src, pt.band, pt);
-
                 updateMedianCDF(pt.band);
             }
 

@@ -1,11 +1,12 @@
 package hw3;
 
 import org.ujmp.core.Matrix;
+import pixeljelly.scanners.Location;
+import pixeljelly.scanners.RasterScanner;
 
+import java.awt.*;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
 public class SimilarityMatrix {
@@ -26,24 +27,20 @@ public class SimilarityMatrix {
     private double[][] generateMatrix() {
         double[][] a = new double[bins][bins];
         double max = Double.MIN_VALUE;
+        Rectangle bounds = new Rectangle(0, 0, bins, bins);
 
-        for (int i = 0; i < a.length; i++) {
-            for (int j = 0; j < a.length; j++) {
-                // get the two colors to compare based on the matrix.
-                int rgbI = getRGB(i);
-                int rgbJ = getRGB(j);
+        for (Location pt : new RasterScanner(bounds)) {
+            int rgbI = getRGB(pt.col);
+            int rgbJ = getRGB(pt.row);
 
-                a[i][j] = calcL2Distance(rgbI, rgbJ);
+            a[pt.col][pt.row] = calcL2Distance(rgbI, rgbJ);
 
-                if (a[i][j] > max) max = a[i][j];
-            }
+            if (a[pt.col][pt.row] > max) max = a[pt.col][pt.row];
         }
 
         // Normalize!
-        for (int x = 0; x < a.length; x++) {
-            for (int i = 0; i < a[x].length; i++) {
-                a[x][i] = 1 - (a[x][i] / max);
-            }
+        for (Location pt : new RasterScanner(bounds)) {
+            a[pt.col][pt.row] = 1 - (a[pt.col][pt.row] / max);
         }
 
         return a;
@@ -78,6 +75,9 @@ public class SimilarityMatrix {
     }
 
     private int getRGB(int index) {
+        int rn = (int) Math.pow(2, this.rn);
+        int gn = (int) Math.pow(2, this.gn);
+        int bn = (int) Math.pow(2, this.bn);
         int ir = (index / (gn * bn)) * (256 / rn) + 128 / rn;
         int ig = ((index / bn) % gn) * (256 / gn) + 128 / gn;
         int ib = (index % bn) * (256 / bn) + 128 / bn;

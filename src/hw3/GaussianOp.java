@@ -30,8 +30,7 @@ public class GaussianOp extends NullOp implements PluggableImageOp {
     }
 
     public GaussianOp() {
-        alpha = 1;
-        sigma = 1;
+
     }
 
     public GaussianOp(double alpha, double sigma) {

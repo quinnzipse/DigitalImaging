@@ -14,8 +14,10 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.DoubleConsumer;
 
 public class ImageDatabase {
     public static void main(String[] args) throws Exception {
@@ -47,34 +49,6 @@ public class ImageDatabase {
         this.bins = (int) Math.pow(2, this.xN + this.yN + this.zN);
     }
 
-    public double[] makeColorHistogram(BufferedImage src) {
-
-        double[] histogram = new double[bins];
-
-        WritableRaster raster = src.getRaster();
-
-        // Iterate through each pixel and increment the corresponding histogram bin.
-        for (Location pt : new RasterScanner(src, false)) {
-            int red = raster.getSample(pt.col, pt.row, 0);
-            int green = raster.getSample(pt.col, pt.row, 1);
-            int blue = raster.getSample(pt.col, pt.row, 2);
-
-            int xP = (int) Math.floor((red * xN) / 256.0);
-            int yP = (int) Math.floor((green * yN) / 256.0);
-            int zP = (int) Math.floor((blue * zN) / 256.0);
-
-            histogram[xP * yN * zN + yP * zN + zP]++;
-        }
-
-        // Normalize the histogram
-        int totalPixels = src.getWidth() * src.getHeight();
-        for (int i = 0; i < histogram.length; i++) {
-            histogram[i] = histogram[i] / totalPixels;
-        }
-
-        return histogram;
-    }
-
     public static void createDatabase(int xN, int yN, int zN, String srcFile, String destFile) throws IOException {
         FileWriter writer = new FileWriter(destFile);
         ImageDatabase database = new ImageDatabase(xN, yN, zN);
@@ -89,36 +63,7 @@ public class ImageDatabase {
         Scanner scanner = new Scanner(new File(srcFile));
 
         while (scanner.hasNext()) {
-            // Scan past user and thumbnail.
-            String creator = scanner.next() + " ";
-            String thumbnail = scanner.next() + " ";
-
-            // Grab the pictures URL and turn it into a buffered image.
-            try {
-                String imgUrl = scanner.next();
-                URL picURL = new URL(imgUrl);
-                BufferedImage img = ImageIO.read(picURL);
-
-                double[] histogram = database.makeColorHistogram(img);
-
-                StringBuilder sb = new StringBuilder();
-                sb.append(creator);
-                sb.append(thumbnail);
-                sb.append(imgUrl);
-                sb.append(" ");
-
-                for (double h : histogram) {
-                    if (h == 0) sb.append("0 ");
-                    else sb.append(String.format("%.20f ", h));
-                }
-
-                sb.append("\n");
-
-                writer.write(sb.toString());
-                writer.flush();
-            } catch (Exception e) {
-                System.out.println("Skipping Image! Reason: " + e.getMessage() + " More Info: " + e.getClass().getName());
-            }
+            addImageToDB(writer, database, scanner);
         }
 
         writer.close();
@@ -147,6 +92,100 @@ public class ImageDatabase {
         writeOut(similarityList.subList(0, limit), dest, imgURL);
     }
 
+    public double[] makeColorHistogram(BufferedImage src) {
+
+        double[] histogram = new double[bins];
+
+        WritableRaster raster = src.getRaster();
+
+        // Iterate through each pixel and increment the corresponding histogram bin.
+        for (Location pt : new RasterScanner(src, false)) {
+            int red = raster.getSample(pt.col, pt.row, 0);
+            int green = raster.getSample(pt.col, pt.row, 1);
+            int blue = raster.getSample(pt.col, pt.row, 2);
+
+            int xn = (int) Math.pow(2, this.xN);
+            int yn = (int) Math.pow(2, this.yN);
+            int zn = (int) Math.pow(2, this.zN);
+
+            int xP = (red * xn) / 256;
+            int yP = (green * yn) / 256;
+            int zP = (blue * zn) / 256;
+
+            histogram[xP * yn * zn + yP * zn + zP]++;
+        }
+
+        // Normalize the histogram
+        int totalPixels = src.getHeight() * src.getWidth();
+        for (int i = 0; i < histogram.length; i++) {
+            histogram[i] = histogram[i] / totalPixels;
+        }
+
+        return histogram;
+    }
+
+    private static void addImageToDB(FileWriter writer, ImageDatabase database, Scanner scanner) {
+        // Get the user URL and thumbnail URL.
+        String creator = scanner.next() + " ";
+        String thumbnail = scanner.next() + " ";
+
+        try {
+            // Grab the pictures URL
+            String imgUrl = scanner.next();
+
+            // Fetch it from the internet.
+            URL picURL = new URL(imgUrl);
+            BufferedImage img = ImageIO.read(picURL);
+
+            double[] histogram = database.makeColorHistogram(img);
+
+            writer.write(generateOutput(creator, thumbnail, imgUrl, histogram));
+            writer.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String generateOutput(String creator, String thumbnail, String imgUrl, double[] histogram) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(creator);
+        sb.append(thumbnail);
+        sb.append(imgUrl);
+        sb.append(" ");
+
+        for (double h : histogram) {
+            if (h == 0) sb.append("0 ");
+            else sb.append(String.format("%.20f ", h));
+        }
+
+        sb.append("\n");
+        return sb.toString();
+    }
+
+    private static void writeOut(List<ImageSimilarity> similarities, String dest, String imgURL) throws IOException {
+        FileWriter out = new FileWriter(dest);
+
+        // Prepare the html file with necessary overhead.
+        out.write("<html>\n<head>\n<title>Pictures!</title>\n" +
+                "<link href=\"style.css\" rel=\"stylesheet\">\n</head>\n<body>");
+        out.write("<img class=\"query\" src=\"" + imgURL + "\">");
+
+        // Write out each similarity object.
+        for (ImageSimilarity similarity : similarities) {
+            out.write("<div class=\"img\"><a href=\"" + similarity.author + "\" " +
+                    "class=\"flickr\"></a><a href=\"" + similarity.image + "\">" +
+                    "<img src=\"" + similarity.thumbnail + "\"></a>" +
+                    "<div class=\"distance\">" + String.format("%.6f", similarity.distance) + "</div></div>");
+        }
+
+        // end the html file with necessary overhead.
+        out.write("</body></html>");
+
+        // Close out the writer.
+        out.flush();
+        out.close();
+    }
+
     private static ImageSimilarity compareImage(Scanner in, ImageDatabase imageProps, Matrix h1) {
         // Get the information.
         String creator = in.next();
@@ -168,31 +207,6 @@ public class ImageDatabase {
         double distance = Math.abs(outMatrix.toDoubleArray()[0][0]);
 
         return new ImageSimilarity(distance, creator, thumbnail, imageURL);
-    }
-
-    private static void writeOut(List<ImageSimilarity> similarities, String dest, String imgURL) throws IOException {
-        FileWriter out = new FileWriter(dest);
-
-        // Prepare the html file with necessary overhead.
-        out.write("<html>\n<head>\n<title>Pictures!</title>\n" +
-                "<link href=\"style.css\" rel=\"stylesheet\">\n</head>\n<body>");
-        out.write("<img class=\"query\" src=\"" + imgURL + "\">");
-
-        // Write out each similarity object.
-        for (ImageSimilarity similarity : similarities) {
-            System.out.println(similarity.image);
-            out.write("<div class=\"img\"><a href=\"" + similarity.author + "\" " +
-                    "class=\"flickr\"></a><a href=\"https://farm5.static.flickr.com/" + similarity.image + "\">" +
-                    "<img src=\"" + similarity.thumbnail + "\"></a>" +
-                    "<div class=\"distance\">" + String.format("%.6f", similarity.distance) + "</div></div>");
-        }
-
-        // end the html file with necessary overhead.
-        out.write("</body></html>");
-
-        // Close out the writer.
-        out.flush();
-        out.close();
     }
 
     private static Matrix createNx1(int n, double[] srcHistogram) {
