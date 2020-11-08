@@ -2,46 +2,69 @@ package hw3;
 
 import org.ujmp.core.Matrix;
 
-import java.awt.*;
-
 public class SimilarityMatrix {
     private final int rn;
     private final int gn;
     private final int bn;
-    private final float[][] matrix;
+    private final int bins;
+    private final double[][] matrix;
 
     public SimilarityMatrix(int rn, int gn, int bn) {
-        if (rn + gn + bn > 10) throw new IllegalArgumentException("band resolution must add up to 10 or less.");
         this.rn = rn;
         this.gn = gn;
         this.bn = bn;
+        this.bins = (int) Math.pow(2, rn + gn + bn);
         this.matrix = generateMatrix();
     }
 
-    private float[][] generateMatrix() {
-        float[][] a = new float[rn * gn * bn][rn * gn * bn];
+    private double[][] generateMatrix() {
+        double[][] a = new double[bins][bins];
+        double max = Double.MIN_VALUE;
+
         for (int i = 0; i < a.length; i++) {
             for (int j = 0; j < a.length; j++) {
                 // get the two colors to compare based on the matrix.
-                int ir = i / (gn * bn);
-                int ig = i / bn % gn;
-                int ib = i % bn;
-                Color c1 = new Color(ir * (256 / rn) + 128 / rn, ig * (256 / gn) + 128 / gn, ib * (256 / bn) + 128 / bn);
-                Color c2 = new Color(jr * (256 / rn) + 128 / rn, jg * (256 / gn) + 128 / gn, jb * (256 / bn) + 128 / bn);
+                int rgbI = getRGB(i);
+                int rgbJ = getRGB(j);
 
-                // Do we need to find the center of the bin?
+                a[i][j] = calcL2Distance(rgbI, rgbJ);
 
-                // Calculate the L2 Distance for those two colors!
-                int distance = 0;
-
-                // Store that number in the similarity matrix! Should be 0-1
-                a[i][j] = distance;
+                if (a[i][j] > max) max = a[i][j];
             }
         }
+
+        // Normalize!
+        for (int x = 0; x < a.length; x++) {
+            for (int i = 0; i < a[x].length; i++) {
+                a[x][i] = 1 - (a[x][i] / max);
+            }
+        }
+
         return a;
     }
 
+    private int getRGB(int index) {
+        int ir = (index / (gn * bn)) * (256 / rn) + 128 / rn;
+        int ig = ((index / bn) % gn) * (256 / gn) + 128 / gn;
+        int ib = (index % bn) * (256 / bn) + 128 / bn;
+        return ir << 16 | ig << 8 | ib;
+    }
+
+    private double calcL2Distance(int rgb1, int rgb2) {
+        return Math.sqrt(Math.pow((rgb2 >> 16 & 0xff) - (rgb1 >> 16 & 0xff), 2)
+                + Math.pow((rgb2 >> 8 & 0xff) - (rgb1 >> 8 & 0xff), 2)
+                + Math.pow((rgb2 & 0xff) - (rgb1 & 0xff), 2));
+    }
+
     public Matrix getMatrix() {
-        return Matrix.Factory.importFromArray(matrix);
+        Matrix m = Matrix.Factory.zeros(bins, bins);
+
+        for (int x = 0; x < matrix.length; x++) {
+            for (int y = 0; y < matrix[x].length; y++) {
+                m.setAsDouble(matrix[x][y], x, y);
+            }
+        }
+
+        return m;
     }
 }

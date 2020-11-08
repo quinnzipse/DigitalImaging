@@ -2,6 +2,7 @@ package hw3;
 
 import org.ujmp.core.DenseMatrix;
 import org.ujmp.core.Matrix;
+import org.ujmp.core.collections.composite.SortedListSet;
 import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
 
@@ -22,7 +23,6 @@ public class ImageDatabase {
             case "create":
                 if (args.length != 7)
                     throw new IllegalArgumentException("Invalid number of arguments. Expected 7 got " + args.length);
-//                var a = new SimilarityMatrix(Integer.parseInt(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]));
                 createDatabase(Integer.parseInt(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), args[4], args[5]);
                 break;
             case "query":
@@ -33,24 +33,24 @@ public class ImageDatabase {
         }
     }
 
-    private int xN, yN, zN; //rgb num bands.
-    private SimilarityMatrix similarityMatrix;
+    private final int xN;
+    private final int yN;
+    private final int zN; //rgb num bands.
+    private final int bins;
+    private final Matrix similarityMatrix;
 
     ImageDatabase(int xN, int yN, int zN) {
-        this.xN = xN;
-        this.yN = yN;
-        this.zN = zN;
+        this.xN = (int) Math.pow(2, xN);
+        this.yN = (int) Math.pow(2, yN);
+        this.zN = (int) Math.pow(2, zN);
+        this.bins = this.xN * this.yN * this.zN;
 
-        similarityMatrix = new SimilarityMatrix(xN, yN, zN);
+        similarityMatrix = (new SimilarityMatrix(xN, yN, zN)).getMatrix();
     }
 
-    public int getNumBins() {
-        return xN * yN * zN;
-    }
+    public double[] makeColorHistogram(BufferedImage src) {
 
-    public float[] makeColorHistogram(BufferedImage src) {
-
-        float[] histogram = new float[xN * yN * zN];
+        double[] histogram = new double[bins];
 
         WritableRaster raster = src.getRaster();
 
@@ -67,6 +67,7 @@ public class ImageDatabase {
             histogram[xP * yN * zN + yP * zN + zP]++;
         }
 
+        // Normalize the histogram
         int totalPixels = src.getWidth() * src.getHeight();
         for (int i = 0; i < histogram.length; i++) {
             histogram[i] = histogram[i] / totalPixels;
@@ -95,7 +96,7 @@ public class ImageDatabase {
                 URL picURL = new URL(scanner.next());
                 BufferedImage img = ImageIO.read(picURL);
 
-                float[] histogram = database.makeColorHistogram(img);
+                double[] histogram = database.makeColorHistogram(img);
 
                 StringBuilder sb = new StringBuilder();
                 sb.append(creator);
@@ -103,14 +104,13 @@ public class ImageDatabase {
                 sb.append(picURL.getPath());
                 sb.append(" ");
 
-                for (float h : histogram) {
-                    sb.append(h);
+                for (double h : histogram) {
+                    if (h == 0) sb.append("0");
+                    else sb.append(String.format("%.15f", h));
                     sb.append(" ");
                 }
 
                 sb.append("\n");
-
-                System.out.print("Histogram: " + sb.toString());
 
                 writer.write(sb.toString());
                 writer.flush();
@@ -123,20 +123,25 @@ public class ImageDatabase {
     }
 
     public static void compare(String imgURL, String src, String dest, int limit) throws IOException {
+        SortedListSet<ImageSimilarity> similarityList = new SortedListSet<>();
         Scanner in = new Scanner(new File(src));
         FileWriter out = new FileWriter(dest);
 
         // Read in the bands.
-        ImageDatabase imageProps = new ImageDatabase(in.nextInt(), in.nextInt(), in.nextInt());
+        int rBins = in.nextInt();
+        int gBins = in.nextInt();
+        int bBins = in.nextInt();
+        ImageDatabase imageProps = new ImageDatabase(rBins, gBins, bBins);
 
         // Get the image from the internet.
         URL url = new URL(imgURL);
         BufferedImage img = ImageIO.read(url);
 
-        float[] srcHisto = imageProps.makeColorHistogram(img);
-        Matrix srcMatrix = DenseMatrix.Factory.importFromArray(srcHisto);
+        // Make the image to compare into a color histogram!
+        double[] srcHisto = imageProps.makeColorHistogram(img);
 
-        Matrix a = imageProps.similarityMatrix.getMatrix();
+        // convert the histogram to a matrix.
+        Matrix h1 = createNx1(imageProps.bins, srcHisto);
 
         // While we have more images...
         while (in.hasNext()) {
@@ -145,25 +150,74 @@ public class ImageDatabase {
             String thumbnail = in.next();
             String imageURL = in.next();
 
-            int bins = imageProps.getNumBins();
-            float[][] histogram = new float[bins][bins];
+            // Create the matrix for the specific histogram!
+            Matrix h2 = DenseMatrix.Factory.zeros(imageProps.bins, 1);
 
-            for (int i = 0; i < bins; i++) {
-                histogram[i] = in.nextFloat();
+            for (int i = 0; i < imageProps.bins; i++) {
+                h2.setAsFloat(in.nextFloat(), i, 0);
             }
 
-            // Process it.
-            Matrix matrix = DenseMatrix.Factory.importFromArray(histogram);
+            Matrix hdiff = h1.minus(h2);
 
-            Matrix hdiff = srcMatrix.minus(matrix);
+            // Calculate the similarity between the images.
+            Matrix outMatrix = imageProps.similarityMatrix.mtimes(hdiff).mtimes(hdiff.transpose());
 
-            Matrix outMatrix = hdiff.times(hdiff.transpose().times(a));
+            // This is the distance!
+            double diff = Math.abs(outMatrix.toDoubleArray()[0][0]);
 
-            float diff = outMatrix.floatValue();
-
-            // Output how similar they are!
-            System.out.println(diff);
+            similarityList.add(new ImageSimilarity(diff, creator, thumbnail, imageURL));
         }
 
+        out.write("<html>\n<head>\n<title>Pictures!</title>\n<link href=\"style.css\" rel=\"stylesheet\">\n</head>\n<body>");
+        out.write("<img class=\"query\" src=\"" + imgURL + "\">");
+        for (ImageSimilarity similarity : similarityList.subList(0, limit)) {
+            out.write("<div class=\"img\"><a href=\"" + similarity.author + "\" " +
+                    "class=\"flickr\"></a><a href=\"" + similarity.image + "\">" +
+                    "<img src=\"" + similarity.thumbnail + "\"></a>" +
+                    "<div class=\"distance\">" + String.format("%.6f", similarity.distance) + "</div></div>");
+        }
+        out.write("</body></html>");
+        out.flush();
+        out.close();
+        in.close();
+    }
+
+    private static Matrix createNx1(int n, double[] srcHistogram) {
+        Matrix h = DenseMatrix.Factory.zeros(n, 1);
+
+        for (int i = 0; i < srcHistogram.length; i++) {
+            h.setAsDouble(srcHistogram[i], i, 0);
+        }
+
+        return h;
+    }
+
+    private static class ImageSimilarity implements Comparable<ImageSimilarity> {
+        private double distance;
+        private final String author;
+        private final String thumbnail;
+        private final String image;
+
+        public ImageSimilarity(String author, String thumbnail, String image) {
+            this(0, author, thumbnail, image);
+        }
+
+        public ImageSimilarity(double distance, String author, String thumbnail, String image) {
+            this.author = author;
+            this.distance = distance;
+            this.thumbnail = thumbnail;
+            this.image = image;
+        }
+
+        public void setDistance(double distance) {
+            this.distance = distance;
+        }
+
+        @Override
+        public int compareTo(ImageSimilarity o) {
+            if (distance - o.distance < 0) return -1;
+            else if (distance - o.distance == 0) return 0;
+            return 1;
+        }
     }
 }
