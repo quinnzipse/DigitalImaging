@@ -10,11 +10,12 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 import java.util.Scanner;
-
 
 public class ImageDatabase {
     public static void main(String[] args) throws Exception {
@@ -40,10 +41,10 @@ public class ImageDatabase {
     private final Matrix similarityMatrix;
 
     ImageDatabase(int xN, int yN, int zN) {
-        this.xN = (int) Math.pow(2, xN);
-        this.yN = (int) Math.pow(2, yN);
-        this.zN = (int) Math.pow(2, zN);
-        this.bins = this.xN * this.yN * this.zN;
+        this.xN = xN;
+        this.yN = yN;
+        this.zN = zN;
+        this.bins = (int) Math.pow(2, this.xN + this.yN + this.zN);
 
         similarityMatrix = (new SimilarityMatrix(xN, yN, zN)).getMatrix();
     }
@@ -105,9 +106,8 @@ public class ImageDatabase {
                 sb.append(" ");
 
                 for (double h : histogram) {
-                    if (h == 0) sb.append("0");
-                    else sb.append(String.format("%.15f", h));
-                    sb.append(" ");
+                    if (h == 0) sb.append("0 ");
+                    else sb.append(String.format("%.15f ", h));
                 }
 
                 sb.append("\n");
@@ -125,13 +125,8 @@ public class ImageDatabase {
     public static void compare(String imgURL, String src, String dest, int limit) throws IOException {
         SortedListSet<ImageSimilarity> similarityList = new SortedListSet<>();
         Scanner in = new Scanner(new File(src));
-        FileWriter out = new FileWriter(dest);
 
-        // Read in the bands.
-        int rBins = in.nextInt();
-        int gBins = in.nextInt();
-        int bBins = in.nextInt();
-        ImageDatabase imageProps = new ImageDatabase(rBins, gBins, bBins);
+        ImageDatabase imageProps = new ImageDatabase(in.nextInt(), in.nextInt(), in.nextInt());
 
         // Get the image from the internet.
         URL url = new URL(imgURL);
@@ -154,13 +149,13 @@ public class ImageDatabase {
             Matrix h2 = DenseMatrix.Factory.zeros(imageProps.bins, 1);
 
             for (int i = 0; i < imageProps.bins; i++) {
-                h2.setAsFloat(in.nextFloat(), i, 0);
+                h2.setAsDouble(in.nextDouble(), i, 0);
             }
 
             Matrix hdiff = h1.minus(h2);
 
             // Calculate the similarity between the images.
-            Matrix outMatrix = imageProps.similarityMatrix.mtimes(hdiff).mtimes(hdiff.transpose());
+            Matrix outMatrix = hdiff.transpose().mtimes(imageProps.similarityMatrix).mtimes(hdiff);
 
             // This is the distance!
             double diff = Math.abs(outMatrix.toDoubleArray()[0][0]);
@@ -168,18 +163,35 @@ public class ImageDatabase {
             similarityList.add(new ImageSimilarity(diff, creator, thumbnail, imageURL));
         }
 
-        out.write("<html>\n<head>\n<title>Pictures!</title>\n<link href=\"style.css\" rel=\"stylesheet\">\n</head>\n<body>");
+        writeOut(similarityList.subList(0, limit), dest, imgURL);
+    }
+
+    private List<String[]> getImageHistograms(Scanner in) {
+        return null;
+    }
+
+    private static void writeOut(List<ImageSimilarity> similarities, String dest, String imgURL) throws IOException {
+        FileWriter out = new FileWriter(dest);
+
+        // Prepare the html file with necessary overhead.
+        out.write("<html>\n<head>\n<title>Pictures!</title>\n" +
+                "<link href=\"style.css\" rel=\"stylesheet\">\n</head>\n<body>");
         out.write("<img class=\"query\" src=\"" + imgURL + "\">");
-        for (ImageSimilarity similarity : similarityList.subList(0, limit)) {
+
+        // Write out each similarity object.
+        for (ImageSimilarity similarity : similarities) {
             out.write("<div class=\"img\"><a href=\"" + similarity.author + "\" " +
                     "class=\"flickr\"></a><a href=\"" + similarity.image + "\">" +
                     "<img src=\"" + similarity.thumbnail + "\"></a>" +
                     "<div class=\"distance\">" + String.format("%.6f", similarity.distance) + "</div></div>");
         }
+
+        // end the html file with necessary overhead.
         out.write("</body></html>");
+
+        // Close out the writer.
         out.flush();
         out.close();
-        in.close();
     }
 
     private static Matrix createNx1(int n, double[] srcHistogram) {
@@ -190,34 +202,5 @@ public class ImageDatabase {
         }
 
         return h;
-    }
-
-    private static class ImageSimilarity implements Comparable<ImageSimilarity> {
-        private double distance;
-        private final String author;
-        private final String thumbnail;
-        private final String image;
-
-        public ImageSimilarity(String author, String thumbnail, String image) {
-            this(0, author, thumbnail, image);
-        }
-
-        public ImageSimilarity(double distance, String author, String thumbnail, String image) {
-            this.author = author;
-            this.distance = distance;
-            this.thumbnail = thumbnail;
-            this.image = image;
-        }
-
-        public void setDistance(double distance) {
-            this.distance = distance;
-        }
-
-        @Override
-        public int compareTo(ImageSimilarity o) {
-            if (distance - o.distance < 0) return -1;
-            else if (distance - o.distance == 0) return 0;
-            return 1;
-        }
     }
 }
