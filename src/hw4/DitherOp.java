@@ -1,5 +1,6 @@
 package hw4;
 
+import pixeljelly.features.Histogram;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
 
@@ -25,6 +26,19 @@ public class DitherOp extends NullOp implements PluggableImageOp {
     public DitherOp(Type type, Color[] palette) {
         this.type = type;
         this.palette = palette;
+    }
+
+    private Color[] generateOptimalPalette(int size, BufferedImage src) {
+
+        Histogram red = new Histogram(src, 0);
+        Histogram green = new Histogram(src, 1);
+        Histogram blue = new Histogram(src, 2);
+
+        int redMedian = 0;
+        int greenMedian = 0;
+        int blueMedian = 0;
+
+        return new Color[0];
     }
 
     @Override

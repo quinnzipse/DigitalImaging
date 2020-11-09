@@ -1,5 +1,6 @@
 package hw4;
 
+import pixeljelly.ops.MagnitudeOfGradientOp;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
 
@@ -19,6 +20,7 @@ public class OrientedEdgeOp extends NullOp implements PluggableImageOp {
         this.epsilon = epsilon;
         this.orientation = orientation;
         this.strength = strength;
+        new MagnitudeOfGradientOp();
     }
 
     @Override
