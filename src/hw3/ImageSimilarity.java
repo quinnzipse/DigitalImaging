@@ -1,10 +1,14 @@
 package hw3;
 
 public class ImageSimilarity implements Comparable<ImageSimilarity> {
-    public final double distance;
+    public double distance;
     public final String author;
     public final String thumbnail;
     public final String image;
+
+    public ImageSimilarity(String author, String thumbnail, String image) {
+        this(0, author, thumbnail, image);
+    }
 
     public ImageSimilarity(double distance, String author, String thumbnail, String image) {
         this.author = author;

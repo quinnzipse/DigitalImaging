@@ -3,16 +3,16 @@ package hw3;
 import org.ujmp.core.DenseMatrix;
 import org.ujmp.core.Matrix;
 import org.ujmp.core.collections.composite.SortedListSet;
+import org.ujmp.core.util.io.BufferedRandomAccessFile;
 import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -37,6 +37,7 @@ public class ImageDatabase {
             System.out.println("Something Went Wrong.\nusage: ImageDatabase \n" +
                     "\ncreate    <x-bands> <y-bands> <z-bands> <src-url-file> <output-db-file> <colorspace>" +
                     "\nquery     <src-img-url> <db-file> <output-file> <limit>\n");
+            e.printStackTrace();
         }
     }
 
@@ -54,18 +55,42 @@ public class ImageDatabase {
     }
 
     public static void createDatabase(int xN, int yN, int zN, String srcFile, String destFile) throws IOException {
-        FileWriter writer = new FileWriter(destFile);
+        System.out.print("Preparing input...");
+        BufferedRandomAccessFile writer = new BufferedRandomAccessFile(new File(destFile), "w");
         ImageDatabase database = new ImageDatabase(xN, yN, zN);
+        List<ImageSimilarity> similarities = new ArrayList<>();
 
-        writer.write(xN + " ");
-        writer.write(yN + " ");
-        writer.write(zN + "\n");
+        // Three bytes at the beginning.
+        writer.writeByte(xN);
+        writer.writeByte(yN);
+        writer.writeByte(zN);
 
         Scanner scanner = new Scanner(new File(srcFile));
+        long time = System.currentTimeMillis();
 
         while (scanner.hasNext()) {
-            addImageToDB(writer, database, scanner);
+            String author = scanner.next(), thumb = scanner.next(), imgURL = scanner.next();
+            similarities.add(new ImageSimilarity(author, thumb, imgURL));
         }
+
+        System.out.printf(" Processing %,d items...\n", similarities.size());
+
+        similarities.parallelStream().forEach(value -> {
+            try {
+                // Fetch it from the internet.
+                BufferedImage img = ImageIO.read(new URL(value.image));
+
+                double[] histogram = database.makeColorHistogram(img);
+
+                writer.write(generateOutput(value.author, value.thumbnail, value.image, histogram));
+            } catch (Exception e) {
+//                e.printStackTrace();
+            }
+        });
+
+        long processingTime = System.currentTimeMillis() - time;
+        System.out.printf("Done in %,d ms. (%d seconds) (~%.2f minutes)\n", processingTime, processingTime/1000, processingTime/60000.0);
+        System.out.printf("Processed %,d images @ %.4f images/s.\n", similarities.size(), (similarities.size() / (processingTime/1000.0)));
 
         writer.close();
     }
