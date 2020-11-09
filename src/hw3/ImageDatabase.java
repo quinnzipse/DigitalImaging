@@ -13,8 +13,11 @@ import java.awt.image.WritableRaster;
 import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ImageDatabase {
     public static void main(String[] args) {
@@ -56,14 +59,14 @@ public class ImageDatabase {
 
     public static void createDatabase(int xN, int yN, int zN, String srcFile, String destFile) throws IOException {
         System.out.print("Preparing input...");
-        BufferedRandomAccessFile writer = new BufferedRandomAccessFile(new File(destFile), "w");
+        FileWriter writer = new FileWriter(destFile);
         ImageDatabase database = new ImageDatabase(xN, yN, zN);
         List<ImageSimilarity> similarities = new ArrayList<>();
 
         // Three bytes at the beginning.
-        writer.writeByte(xN);
-        writer.writeByte(yN);
-        writer.writeByte(zN);
+        writer.write(xN + " ");
+        writer.write(yN + " ");
+        writer.write(zN + " \n");
 
         Scanner scanner = new Scanner(new File(srcFile));
         long time = System.currentTimeMillis();
@@ -83,23 +86,32 @@ public class ImageDatabase {
                 double[] histogram = database.makeColorHistogram(img);
 
                 writer.write(generateOutput(value.author, value.thumbnail, value.image, histogram));
-            } catch (Exception e) {
-//                e.printStackTrace();
+            } catch (Exception ignored) {
+
             }
         });
 
         long processingTime = System.currentTimeMillis() - time;
-        System.out.printf("Done in %,d ms. (%d seconds) (~%.2f minutes)\n", processingTime, processingTime/1000, processingTime/60000.0);
-        System.out.printf("Processed %,d images @ %.4f images/s.\n", similarities.size(), (similarities.size() / (processingTime/1000.0)));
+        System.out.printf("Done in %,d ms. (%d seconds) (~%.2f minutes)\n", processingTime, processingTime / 1000, processingTime / 60000.0);
+        System.out.printf("Processed %,d images @ %.4f images/s.\n", similarities.size(), (similarities.size() / (processingTime / 1000.0)));
 
         writer.close();
     }
 
     public static void query(String imgURL, String src, String dest, int limit) throws IOException {
-        SortedListSet<ImageSimilarity> similarityList = new SortedListSet<>();
-        Scanner in = new Scanner(new File(src));
+        long time = System.currentTimeMillis();
 
-        ImageDatabase imageProps = new ImageDatabase(in.nextInt(), in.nextInt(), in.nextInt());
+        SortedListSet<ImageSimilarity> similarityList = new SortedListSet<>();
+        BufferedReader in = new BufferedReader(new FileReader(src));
+
+        List<String> lines = in.lines().collect(Collectors.toList());
+
+        System.out.printf("Comparing %,d images. Please wait...\n", lines.size());
+
+        List<Integer> bins = Arrays.stream(lines.remove(0).split(" "))
+                .map(Integer::parseInt).collect(Collectors.toList());
+
+        ImageDatabase imageProps = new ImageDatabase(bins.get(0), bins.get(1), bins.get(2));
         imageProps.similarityMatrix = new SimilarityMatrix(imageProps.xN, imageProps.yN, imageProps.zN);
 
         // Get the image from the internet.
@@ -109,12 +121,15 @@ public class ImageDatabase {
         // convert the image to a histogram matrix.
         Matrix h1 = createNx1(imageProps.bins, imageProps.makeColorHistogram(img));
 
-        while (in.hasNext()) {
-            // Compare them and add the comparison to the list.
-            similarityList.add(compareImage(in, imageProps, h1));
-        }
+        lines.parallelStream().forEach(value -> {
+            Scanner scanner = new Scanner(value);
+            similarityList.add(compareImage(scanner, imageProps, h1));
+            scanner.close();
+        });
 
         writeOut(similarityList.subList(0, limit), dest, imgURL);
+
+        System.out.printf("Done in %,dms", System.currentTimeMillis() - time);
     }
 
     public double[] makeColorHistogram(BufferedImage src) {
@@ -169,10 +184,7 @@ public class ImageDatabase {
 
     private static String generateOutput(String creator, String thumbnail, String imgUrl, double[] histogram) {
         StringBuilder sb = new StringBuilder();
-        sb.append(creator);
-        sb.append(thumbnail);
-        sb.append(imgUrl);
-        sb.append(" ");
+        sb.append(creator).append(" ").append(thumbnail).append(" ").append(imgUrl).append(" ");
 
         for (double h : histogram) {
             if (h == 0) sb.append("0 ");

@@ -24,20 +24,25 @@ public class SimilarityMatrix {
     private double[][] generateMatrix() {
         double[][] a = new double[bins][bins];
         double max = Double.MIN_VALUE;
-        Rectangle bounds = new Rectangle(0, 0, bins, bins);
 
-        for (Location pt : new RasterScanner(bounds)) {
-            int rgbI = getRGB(pt.col);
-            int rgbJ = getRGB(pt.row);
+        for (int i = 0; i < a.length; i++) {
+            for (int j = 0; j < i + 1; j++) {
+                int rgbI = getRGB(i);
+                int rgbJ = getRGB(j);
 
-            a[pt.col][pt.row] = calcL2Distance(rgbI, rgbJ);
+                a[i][j] = calcL2Distance(rgbI, rgbJ);
+                a[a.length - 1 - i][a.length - 1 - j] = a[i][j];
 
-            if (a[pt.col][pt.row] > max) max = a[pt.col][pt.row];
+                if (a[i][j] > max) max = a[i][j];
+            }
         }
 
         // Normalize!
-        for (Location pt : new RasterScanner(bounds)) {
-            a[pt.col][pt.row] = 1 - (a[pt.col][pt.row] / max);
+        for (int i = 0; i < a.length; i++) {
+            for (int j = 0; j < i + 1; j++) {
+                a[i][j] = 1 - (a[i][j] / max);
+                a[a.length - 1 - i][a.length - 1 - j] = a[i][j];
+            }
         }
 
         return a;
