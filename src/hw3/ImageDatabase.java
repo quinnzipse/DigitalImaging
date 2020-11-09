@@ -10,14 +10,11 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
-import java.util.function.DoubleConsumer;
 
 public class ImageDatabase {
     public static void main(String[] args) {
@@ -37,7 +34,7 @@ public class ImageDatabase {
                     throw new Exception();
             }
         } catch (Exception e) {
-            System.out.println("\nusage: ImageDatabase \n" +
+            System.out.println("Something Went Wrong.\nusage: ImageDatabase \n" +
                     "\ncreate    <x-bands> <y-bands> <z-bands> <src-url-file> <output-db-file> <colorspace>" +
                     "\nquery     <src-img-url> <db-file> <output-file> <limit>\n");
         }
@@ -141,7 +138,7 @@ public class ImageDatabase {
             writer.write(generateOutput(creator, thumbnail, imgUrl, histogram));
             writer.flush();
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
     }
 

@@ -5,9 +5,6 @@ import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
 
 import java.awt.*;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Scanner;
 
 public class SimilarityMatrix {
     private final int rn;
