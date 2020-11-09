@@ -64,9 +64,6 @@ public class ImageDatabase {
         writer.write(yN + " ");
         writer.write(zN + "\n");
 
-        database.similarityMatrix = new SimilarityMatrix(xN, yN, zN);
-        database.similarityMatrix.write(writer);
-
         Scanner scanner = new Scanner(new File(srcFile));
 
         while (scanner.hasNext()) {
@@ -81,7 +78,7 @@ public class ImageDatabase {
         Scanner in = new Scanner(new File(src));
 
         ImageDatabase imageProps = new ImageDatabase(in.nextInt(), in.nextInt(), in.nextInt());
-        imageProps.similarityMatrix = SimilarityMatrix.read(in, imageProps.xN, imageProps.yN, imageProps.zN);
+        imageProps.similarityMatrix = new SimilarityMatrix(imageProps.xN, imageProps.yN, imageProps.zN);
 
         // Get the image from the internet.
         URL url = new URL(imgURL);
