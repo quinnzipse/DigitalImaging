@@ -55,6 +55,16 @@ public class GaussianOp extends NullOp implements PluggableImageOp {
         }
 
         float[] coefficients = getGaussianCoefficients(alpha, sigma);
+
+        float sum = 0;
+        for (float coefficient : coefficients) {
+            sum += coefficient;
+        }
+
+        for (int i = 0; i < coefficients.length; i++) {
+            coefficients[i] /= sum;
+        }
+
         dest = (new ConvolutionOp(new SeperableKernel(coefficients, coefficients), false)).filter(src, dest);
 
         return dest;
