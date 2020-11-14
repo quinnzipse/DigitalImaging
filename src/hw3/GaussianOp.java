@@ -7,6 +7,7 @@ import pixeljelly.utilities.SeperableKernel;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
+import java.util.stream.Stream;
 
 public class GaussianOp extends NullOp implements PluggableImageOp {
 
