@@ -11,6 +11,7 @@ import pixeljelly.scanners.RasterScanner;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
+import java.awt.geom.RectangularShape;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.util.ArrayList;
@@ -75,29 +76,88 @@ public class DitherOp extends NullOp implements PluggableImageOp {
 
     }
 
-    private Color[] medianCut1(int size, BufferedImage src) {
-        Queue<Rectangle> pq = new PriorityQueue<>();
+    private static class Cube implements Comparable<Cube> {
+        private int x;
+        private int y;
+        private int z;
+        private int width;
+        private int height;
+        private int length;
 
-        Histogram r = new Histogram(src, 0);
-        Histogram g = new Histogram(src, 1);
-        Histogram b = new Histogram(src, 2);
-
-        int rRange = r.getMaxValue() - r.getMinValue();
-        int gRange = g.getMaxValue() - g.getMinValue();
-        int bRange = b.getMaxValue() - b.getMinValue();
-
-        int maxRange = Math.max(Math.max(rRange, gRange), bRange);
-        int maxBand = 0;
-
-        if (gRange == maxRange) {
-            maxBand = 1;
-        } else if (bRange == maxRange) {
-            maxRange = 2;
+        public Cube(int x, int y, int z, int width, int height, int length) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.width = width;
+            this.height = height;
+            this.length = length;
         }
 
-        // Max band is now the color we need to split based on.
+        @Override
+        public Cube clone() {
+            return new Cube(x, y, z, width, height, length);
+        }
 
-        pq.add(r, r.get);
+        public int getLongestLength() {
+            return Math.max(width, Math.max(height, length));
+        }
+
+        public Cube cut() {
+            Cube other = clone();
+            int longest = getLongestLength();
+            int band = 0;
+            if (longest == height) {
+                band = 1;
+            } else if (longest == length) {
+                band = 2;
+            }
+
+            // TODO:
+        }
+
+        public int compareTo(Cube o) {
+            return getLongestLength() - o.getLongestLength();
+        }
+
+    }
+
+    private Color[] medianCut1(int size, BufferedImage src) {
+        Cube c = getSmallestBox(src);
+        PriorityQueue<Cube> pq = new PriorityQueue<>();
+        pq.add(c);
+
+        while (pq.size() != size) {
+            Cube cube = pq.remove();
+            Cube cube2 = cube.cut();
+
+            pq.add(cube);
+            pq.add(cube2);
+        }
+
+        return cubesToColors(pq.toArray(Cube[]::new));
+    }
+
+    private Color[] cubesToColors(Cube[] cubes) {
+        for (Cube c : cubes) {
+        }
+        return new Color[0];
+    }
+
+    private Cube getSmallestBox(BufferedImage img) {
+        Histogram r = new Histogram(img, 0);
+        Histogram g = new Histogram(img, 1);
+        Histogram b = new Histogram(img, 2);
+
+        Cube cube = new Cube();
+
+        cube.width = r.getMaxValue() - r.getMinValue();
+        cube.x = r.getMinValue();
+        cube.height = g.getMaxValue() - g.getMinValue();
+        cube.y = g.getMinValue();
+        cube.length = b.getMaxValue() - b.getMinValue();
+        cube.z = b.getMinValue();
+
+        return cube;
     }
 
     @Override
