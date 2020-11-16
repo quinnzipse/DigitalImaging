@@ -1,18 +1,21 @@
 package hw4;
 
-import pixeljelly.features.Histogram;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
-import pixeljelly.ops.RankOp;
 import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
+import pixeljelly.utilities.ImagePadder;
+import pixeljelly.utilities.ReflectivePadder;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
+import java.util.Arrays;
 
 public class MostCommonOp extends NullOp implements PluggableImageOp {
     private int m;
     private int n;
+    private static final ImagePadder padder = ReflectivePadder.getInstance();
 
     public MostCommonOp() {
 
@@ -34,25 +37,33 @@ public class MostCommonOp extends NullOp implements PluggableImageOp {
             dest = createCompatibleDestImage(src, src.getColorModel());
         }
 
-        Histogram h = null;
+        int[] histogram = new int[(int)Math.pow(2, src.getSampleModel().getSampleSize(0))];
 
-        for (Location pt : new RasterScanner(src, false)) {
-            if (pt.col == 0) {
-                createHistogram(src, h, pt);
-            } else {
-                updateHistogram(src, h);
-            }
+        for (Location pt : new RasterScanner(src, true)) {
+            dest.getRaster().setSample(pt.col, pt.row, pt.band, getMostCommon(src, pt, histogram));
         }
 
         return dest;
     }
 
-    private void createHistogram(BufferedImage src, Histogram h, Location pt) {
+    private int getMostCommon(BufferedImage src, Location pt, int[] histogram) {
+        // Generate a new histogram!
+        Rectangle mask = new Rectangle(pt.col - n / 2, pt.row - m / 2, n, m);
 
-    }
+        Arrays.fill(histogram, 0);
 
-    private void updateHistogram(BufferedImage src, Histogram h) {
+        for (Location m_pt : new RasterScanner(mask)) {
+            histogram[padder.getSample(src, m_pt.col, m_pt.row, pt.band)]++;
+        }
 
+        int max = Arrays.stream(histogram).max().orElseThrow();
+
+        int index = 0;
+        while (histogram[index] != max) {
+            index++;
+        }
+
+        return index;
     }
 
     @Override

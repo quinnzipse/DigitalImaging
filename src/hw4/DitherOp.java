@@ -66,7 +66,7 @@ public class DitherOp extends NullOp implements PluggableImageOp {
 
         // We know what band has the most range...
 
-
+        return null;
 
     }
 
@@ -92,6 +92,8 @@ public class DitherOp extends NullOp implements PluggableImageOp {
         }
 
         double median = maxOfMax / 2.0;
+
+        return null;
     }
 
     @Override
