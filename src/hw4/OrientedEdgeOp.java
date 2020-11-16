@@ -1,8 +1,8 @@
 package hw4;
 
-import pixeljelly.ops.MagnitudeOfGradientOp;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
+import pixeljelly.scanners.Location;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
@@ -20,7 +20,6 @@ public class OrientedEdgeOp extends NullOp implements PluggableImageOp {
         this.epsilon = epsilon;
         this.orientation = orientation;
         this.strength = strength;
-        new MagnitudeOfGradientOp();
     }
 
     @Override
@@ -55,5 +54,16 @@ public class OrientedEdgeOp extends NullOp implements PluggableImageOp {
     @Override
     public String getAuthorName() {
         return "Quinn Zipse";
+    }
+
+    @Override
+    public BufferedImage filter(BufferedImage src, BufferedImage dest) {
+        if (dest == null) {
+            dest = createCompatibleDestImage(src, src.getColorModel());
+        }
+
+        for(Location pt : )
+
+        return dest;
     }
 }

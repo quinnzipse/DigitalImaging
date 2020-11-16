@@ -1,5 +1,6 @@
 package hw4;
 
+import org.w3c.dom.css.Rect;
 import pixeljelly.features.Histogram;
 import pixeljelly.gui.InterruptableTask;
 import pixeljelly.ops.NullOp;
@@ -7,11 +8,15 @@ import pixeljelly.ops.PluggableImageOp;
 import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
 
+import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 public class DitherOp extends NullOp implements PluggableImageOp {
 
@@ -71,29 +76,28 @@ public class DitherOp extends NullOp implements PluggableImageOp {
     }
 
     private Color[] medianCut1(int size, BufferedImage src) {
-        int[] max = new int[src.getRaster().getNumBands()];
-        int[] min = new int[src.getRaster().getNumBands()];
-        int[] range = new int[src.getRaster().getNumBands()];
+        Queue<Rectangle> pq = new PriorityQueue<>();
 
-        for (Location pt : new RasterScanner(src, true)) {
-            int sample = src.getRaster().getSample(pt.col, pt.row, pt.band);
-            max[pt.band] = Math.max(max[pt.band], sample);
-            min[pt.band] = Math.min(min[pt.band], sample);
+        Histogram r = new Histogram(src, 0);
+        Histogram g = new Histogram(src, 1);
+        Histogram b = new Histogram(src, 2);
+
+        int rRange = r.getMaxValue() - r.getMinValue();
+        int gRange = g.getMaxValue() - g.getMinValue();
+        int bRange = b.getMaxValue() - b.getMinValue();
+
+        int maxRange = Math.max(Math.max(rRange, gRange), bRange);
+        int maxBand = 0;
+
+        if (gRange == maxRange) {
+            maxBand = 1;
+        } else if (bRange == maxRange) {
+            maxRange = 2;
         }
 
-        int maxOfMax = 0;
-        int index = -1;
-        for (int i = 0; i < max.length; i++) {
-            range[i] = max[i] - min[i];
-            if (range[i] > maxOfMax) {
-                maxOfMax = range[i];
-                index = i;
-            }
-        }
+        // Max band is now the color we need to split based on.
 
-        double median = maxOfMax / 2.0;
-
-        return null;
+        pq.add(r, r.get);
     }
 
     @Override
