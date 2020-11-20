@@ -42,15 +42,15 @@ public class Cube implements Comparable<Cube> {
         int longest = getLongestLength();
 
         if (longest == height) {
-            this.height /= 2;
+            height /= 2;
             other = clone();
             other.y += height;
         } else if (longest == length) {
-            this.length /= 2;
+            length /= 2;
             other = clone();
             other.x += length;
         } else {
-            this.width /= 2;
+            width /= 2;
             other = clone();
             other.z += width;
         }
@@ -59,7 +59,7 @@ public class Cube implements Comparable<Cube> {
     }
 
     public int compareTo(Cube o) {
-        return getLongestLength() - o.getLongestLength();
+        return o.getLongestLength() - getLongestLength();
     }
 
 }

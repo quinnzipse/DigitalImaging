@@ -3,8 +3,6 @@ package hw4;
 import pixeljelly.features.Histogram;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
-import pixeljelly.scanners.Location;
-import pixeljelly.scanners.RasterScanner;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -34,6 +32,7 @@ public class DitherOp extends NullOp implements PluggableImageOp {
     }
 
     private Color[] medianCut(int size, BufferedImage src) {
+        // Get the bounding box around the histograms
         Cube c = getSmallestBox(src);
         PriorityQueue<Cube> pq = new PriorityQueue<>();
         pq.add(c);
