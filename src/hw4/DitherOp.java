@@ -25,13 +25,14 @@ public class DitherOp extends NullOp implements PluggableImageOp {
 
     private Type type;
     private Color[] palette;
+    private int paletteSize;
 
     public DitherOp() {
     }
 
     public DitherOp(Type type, int paletteSize) {
-        this.palette = new Color[paletteSize]; // Use median cut algorithm.
         this.type = type;
+        this.paletteSize = paletteSize;
     }
 
     public DitherOp(Type type, Color[] palette) {
@@ -84,6 +85,10 @@ public class DitherOp extends NullOp implements PluggableImageOp {
         private int height;
         private int length;
 
+        public Cube() {
+
+        }
+
         public Cube(int x, int y, int z, int width, int height, int length) {
             this.x = x;
             this.y = y;
@@ -91,6 +96,11 @@ public class DitherOp extends NullOp implements PluggableImageOp {
             this.width = width;
             this.height = height;
             this.length = length;
+        }
+
+        public Color toColor() {
+            System.out.println((x + width / 2) + ", " + (y + height / 2) + ", " + (z + height / 2));
+            return new Color(x + width / 2, y + height / 2, z + height / 2);
         }
 
         @Override
@@ -103,16 +113,24 @@ public class DitherOp extends NullOp implements PluggableImageOp {
         }
 
         public Cube cut() {
-            Cube other = clone();
+            Cube other;
             int longest = getLongestLength();
-            int band = 0;
+
             if (longest == height) {
-                band = 1;
+                this.height /= 2;
+                other = clone();
+                other.y += height;
             } else if (longest == length) {
-                band = 2;
+                this.length /= 2;
+                other = clone();
+                other.x += length;
+            } else {
+                this.width /= 2;
+                other = clone();
+                other.z += width;
             }
 
-            // TODO:
+            return other;
         }
 
         public int compareTo(Cube o) {
@@ -138,9 +156,7 @@ public class DitherOp extends NullOp implements PluggableImageOp {
     }
 
     private Color[] cubesToColors(Cube[] cubes) {
-        for (Cube c : cubes) {
-        }
-        return new Color[0];
+        return Arrays.stream(cubes).map(Cube::toColor).toArray(Color[]::new);
     }
 
     private Cube getSmallestBox(BufferedImage img) {
@@ -158,6 +174,21 @@ public class DitherOp extends NullOp implements PluggableImageOp {
         cube.z = b.getMinValue();
 
         return cube;
+    }
+
+    @Override
+    public BufferedImage filter(BufferedImage src, BufferedImage dest) {
+        if (dest == null) {
+            dest = createCompatibleDestImage(src, src.getColorModel());
+        }
+
+        this.palette = medianCut1(paletteSize, src);
+
+        for (Color c : palette) {
+            System.out.println(c.getRed() + ", " + c.getGreen() + ", " + c.getBlue());
+        }
+
+        return dest;
     }
 
     @Override
