@@ -45,4 +45,34 @@ public class FishLensOp extends NullOp implements PluggableImageOp {
     public void setInverted(boolean inverted) {
         isInverted = inverted;
     }
+
+    @Override
+    public BufferedImage filter(BufferedImage src, BufferedImage dest) {
+        if (dest == null) {
+            dest = createCompatibleDestImage(src, src.getColorModel());
+        }
+
+        int focalLength = calcFocalLength(src);
+        double scale = calcScale(focalLength);
+
+        return null;
+    }
+
+    private int calcFocalLength(BufferedImage src) {
+        return Math.max(src.getHeight(), src.getWidth());
+    }
+
+    private double calcScale(int focalLength) {
+        return focalLength / Math.log(weight * focalLength + 1);
+    }
+
+    private double calcR(int focalLength, double rPrime, double scale) {
+        if (rPrime >= focalLength) {
+            return rPrime;
+        } else if (isInverted) {
+            return scale * Math.log(weight * rPrime + 1);
+        } else {
+            return (Math.pow(Math.E, rPrime / scale) - 1) / weight;
+        }
+    }
 }
