@@ -1,7 +1,11 @@
 package hw4;
 
+import pixeljelly.ops.GeometricTransformOp;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
+import pixeljelly.utilities.BilinearInterpolant;
+import pixeljelly.utilities.Interpolant;
+import pixeljelly.utilities.InverseMapper;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
@@ -52,27 +56,10 @@ public class FishLensOp extends NullOp implements PluggableImageOp {
             dest = createCompatibleDestImage(src, src.getColorModel());
         }
 
-        int focalLength = calcFocalLength(src);
-        double scale = calcScale(focalLength);
+        Interpolant interpolant = new BilinearInterpolant();
+        InverseMapper mapper = new FishLensMapper(weight, isInverted);
+        BufferedImageOp op = new GeometricTransformOp(mapper, interpolant);
 
-        return null;
-    }
-
-    private int calcFocalLength(BufferedImage src) {
-        return Math.max(src.getHeight(), src.getWidth());
-    }
-
-    private double calcScale(int focalLength) {
-        return focalLength / Math.log(weight * focalLength + 1);
-    }
-
-    private double calcR(int focalLength, double rPrime, double scale) {
-        if (rPrime >= focalLength) {
-            return rPrime;
-        } else if (isInverted) {
-            return scale * Math.log(weight * rPrime + 1);
-        } else {
-            return (Math.pow(Math.E, rPrime / scale) - 1) / weight;
-        }
+        return op.filter(src, dest);
     }
 }
