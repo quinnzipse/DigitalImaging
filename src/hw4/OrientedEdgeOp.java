@@ -99,19 +99,12 @@ public class OrientedEdgeOp extends NullOp implements PluggableImageOp {
             double distance = Math.sqrt(dx * dx + dy * dy) / 255;
             double direction = Math.atan2(dy, dx);
 
-            if (distance > strength) {
-                maxDist = Math.max(maxDist, distance);
-                dest.setRGB(pt.col, pt.row, Color.GREEN.getRGB());
-
-                if (direction < max && min < direction) {
-                    dest.setRGB(pt.col, pt.row, Color.RED.getRGB());
-                }
+            if (distance > strength && direction < max && min < direction) {
+                dest.setRGB(pt.col, pt.row, Color.RED.getRGB());
             } else {
                 dest.setRGB(pt.col, pt.row, src.getRGB(pt.col, pt.row));
             }
         }
-
-        System.out.println("Max Dist: " + maxDist);
 
         return dest;
     }
