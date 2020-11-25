@@ -1,6 +1,7 @@
 package hw4;
 
-import pixeljelly.features.Histogram;
+import pixeljelly.scanners.Location;
+import pixeljelly.scanners.RasterScanner;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -8,11 +9,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class MedianCut {
     private final BufferedImage src;
     private final int bins;
-    private Color[] palette;
+    private final Color[] palette;
 
     public MedianCut(BufferedImage src, int bins) {
         this.src = src;
@@ -25,12 +27,20 @@ public class MedianCut {
     }
 
     private Color[] calculatePalette() {
-        int[] pixels = src.getRaster().getPixels(0, 0, src.getWidth(), src.getHeight(), new int[0]);
+        Integer[] pixels = new Integer[src.getHeight() * src.getWidth()];
 
-        return medianCut(pixels, 0, bins);
+        int i = 0;
+        for (Location pt : new RasterScanner(src, false)) {
+            pixels[i] = src.getRGB(pt.col, pt.row);
+            i++;
+        }
+
+        int depth = (int) (Math.log(bins) / Math.log(2));
+
+        return medianCut(pixels, 0, depth).toArray(Color[]::new);
     }
 
-    private Color getColorFromPixels(int[] pixels) {
+    private Color getColorFromPixels(Integer[] pixels) {
         int r = 0;
         int b = 0;
         int g = 0;
@@ -49,55 +59,36 @@ public class MedianCut {
         return new Color(r, g, b);
     }
 
-    private Color[] medianCut(int[] pixels, int depth, int maxDepth) {
+    private ArrayList<Color> medianCut(Integer[] pixels, int depth, int maxDepth) {
 
         if (depth >= maxDepth) {
-            return new Color[]{getColorFromPixels(pixels)};
+            ArrayList<Color> colors = new ArrayList<>();
+            colors.add(getColorFromPixels(pixels));
+            return colors;
         }
 
         int band = biggestRange(pixels);
 
         pixels = sortByBand(pixels, band);
 
-        int[] a = Arrays.copyOfRange(pixels, 0, pixels.length / 2);
-        int[] b = Arrays.copyOfRange(pixels, pixels.length / 2 + 1, pixels.length);
+        Integer[] a = Arrays.copyOfRange(pixels, 0, pixels.length / 2);
+        Integer[] b = Arrays.copyOfRange(pixels, pixels.length / 2, pixels.length);
 
-        ArrayList<Color> colors = (ArrayList<Color>) Arrays.asList(medianCut(a, depth + 1, maxDepth));
-        colors.addAll(Arrays.asList(medianCut(b, depth + 1, maxDepth)));
+        ArrayList<Color> colors = medianCut(a, depth + 1, maxDepth);
+        colors.addAll(medianCut(b, depth + 1, maxDepth));
 
-        return colors.toArray(Color[]::new);
+        return colors;
     }
 
-    private int[] sortByBand(int[] pixels, int band) {
-        int offset = (25 - 8 * band);
+    private Integer[] sortByBand(Integer[] pixels, int band) {
+        int offset = (16 - 8 * band);
 
-        // Box the array into objects.
-        Integer[] vals = Arrays.stream(pixels).boxed().toArray(Integer[]::new);
-
-        // Sort the list.
-        Arrays.sort(vals, (Integer pixel, Integer other) -> (pixel >> offset) & 0xff - (other >> offset) & 0xff);
-
-        // Convert back.
-        return Arrays.stream(vals).mapToInt(Integer::intValue).toArray();
+        return Arrays.stream(pixels)
+                .sorted(Comparator.comparingInt((Integer o) -> (o >> offset) & 0xff))
+                .toArray(Integer[]::new);
     }
 
-    private int biggestRangeHist(BufferedImage src) {
-        Histogram r = new Histogram(src, 0);
-        Histogram g = new Histogram(src, 1);
-        Histogram b = new Histogram(src, 2);
-
-        int rRange = r.getMaxValue() - r.getMinValue();
-        int gRange = g.getMaxValue() - g.getMinValue();
-        int bRange = b.getMaxValue() - b.getMinValue();
-
-        int biggestRange = Math.max(rRange, Math.max(gRange, bRange));
-
-        if (biggestRange == rRange) return 0;
-        else if (biggestRange == gRange) return 1;
-        else return 2;
-    }
-
-    private int biggestRange(int[] rgbVals) {
+    private int biggestRange(Integer[] rgbVals) {
         int rMin = Integer.MAX_VALUE;
         int rMax = Integer.MIN_VALUE;
 
@@ -138,16 +129,19 @@ public class MedianCut {
             FileWriter fw = new FileWriter(fileName);
 
             fw.write("<html><head><title>Color Palette</title></head><body>");
+            fw.write("<div>" + palette.length + "</div>");
 
             for (Color c : palette) {
                 String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
-                fw.write("<div style='width: 10vw; height: 10vh; background-color: " + hex + ";'></div>");
+                fw.write("<div style='display:inline-block;width: 25%; height: 15vh; background-color: " + hex + ";'></div>");
             }
 
             fw.write("</body></html>");
 
+            fw.flush();
+            fw.close();
         } catch (IOException e) {
-            System.err.println("Cannot write file " + fileName);
+            System.out.println("Cannot write file " + fileName);
         }
     }
 }

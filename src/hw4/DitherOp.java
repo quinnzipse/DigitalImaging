@@ -3,8 +3,6 @@ package hw4;
 import pixeljelly.features.Histogram;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
-import pixeljelly.scanners.Location;
-import pixeljelly.scanners.RasterScanner;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -33,87 +31,53 @@ public class DitherOp extends NullOp implements PluggableImageOp {
         this.palette = palette;
     }
 
-    private Color[] medianCut(int size, BufferedImage src) {
-        // Get the bounding box around the histograms
-        Cube c = getSmallestBox(src);
-        PriorityQueue<Cube> pq = new PriorityQueue<>();
-        pq.add(c);
-
-        while (pq.size() != size) {
-            Cube cube = pq.remove();
-            Cube cube2 = cube.cut();
-
-            pq.add(cube);
-            pq.add(cube2);
-        }
-
-        return cubesToColors(pq.toArray(Cube[]::new));
-    }
-
-    private Color[] cubesToColors(Cube[] cubes) {
-        return Arrays.stream(cubes).map(Cube::toColor).toArray(Color[]::new);
-    }
-
-    private Cube getSmallestBox(BufferedImage img) {
-        Histogram r = new Histogram(img, 0);
-        Histogram g = new Histogram(img, 1);
-        Histogram b = new Histogram(img, 2);
-
-        Cube cube = new Cube();
-
-        cube.width = r.getMaxValue() - r.getMinValue();
-        cube.x = r.getMinValue();
-        cube.height = g.getMaxValue() - g.getMinValue();
-        cube.y = g.getMinValue();
-        cube.length = b.getMaxValue() - b.getMinValue();
-        cube.z = b.getMinValue();
-
-        return cube;
-    }
-
     @Override
     public BufferedImage filter(BufferedImage src, BufferedImage dest) {
         if (dest == null) {
             dest = createCompatibleDestImage(src, src.getColorModel());
         }
 
-        this.palette = medianCut(paletteSize, src);
-
-        for (Color c : palette) {
-            System.out.println(c.getRed() + ", " + c.getGreen() + ", " + c.getBlue());
+        if (this.palette == null) {
+            MedianCut cutter = new MedianCut(src, paletteSize);
+            this.palette = cutter.getPalette();
+            cutter.makeHTML("medianCut.html");
         }
 
-        //Pseudo Code from the Power Point.
-        for (Location pt : new RasterScanner(src, false)) {
-            // For every pixel....
-            int index = getClosestIndex(src.getRGB(pt.col, pt.row)); // index of palette color closest todo needs update.
-            dest.setRGB(pt.col, pt.row, index); // set the destination to that color.
-            int error = src.getRGB(pt.col, pt.row) - dest.getRGB(pt.col, pt.row); // Calculate the error.
-            // Diffuse the error to the nearby pixels on a band-by-band basis.
-            diffuseError(error);
-        }
+//        for (Color c : palette) {
+//            System.out.println(c.getRed() + ", " + c.getGreen() + ", " + c.getBlue());
+//        }
+//
+//        //Pseudo Code from the Power Point.
+//        for (Location pt : new RasterScanner(src, false)) {
+//            // For every pixel....
+//            int index = getClosestIndex(src.getRGB(pt.col, pt.row)); // index of palette color closest todo needs update.
+//            dest.setRGB(pt.col, pt.row, index); // set the destination to that color.
+//            int error = src.getRGB(pt.col, pt.row) - dest.getRGB(pt.col, pt.row); // Calculate the error.
+//            // Diffuse the error to the nearby pixels on a band-by-band basis.
+//            diffuseError(error);
+//        }
 
         return dest;
     }
 
-    private int getClosestIndex(int color) {
+//    private int getClosestIndex(int color) {
+//
+//        for (Color c : palette) {
+//            distanceBetween(c.getRGB(), color);
+//        }
+//
+//        return 0;
+//    }
 
-        for (Color c : palette) {
-            distanceBetween(c.getRGB(), color);
-        }
-
-        return 0;
-    }
-
-    private int distanceBetween(int c1, int c2) {
-        int[] rgb = new int[]{
-                (c1 >> 16) & 0xff, (c1 >> 8) & 0xff, (c1 & 0xff)
-        };
-        int[] rgb2 = new int[]{
-                (c2 >> 16) & 0xff, (c2 >> 8) & 0xff, (c2 & 0xff)
-        };
-        return Math.sqrt();
-    }
+//    private int distanceBetween(int c1, int c2) {
+//        int[] rgb = new int[]{
+//                (c1 >> 16) & 0xff, (c1 >> 8) & 0xff, (c1 & 0xff)
+//        };
+//        int[] rgb2 = new int[]{
+//                (c2 >> 16) & 0xff, (c2 >> 8) & 0xff, (c2 & 0xff)
+//        };
+////        return Math.sqrt();
+//    }
 
     private void diffuseError(int error) {
 
