@@ -3,6 +3,8 @@ package hw4;
 import pixeljelly.features.Histogram;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
+import pixeljelly.scanners.Location;
+import pixeljelly.scanners.RasterScanner;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -81,7 +83,40 @@ public class DitherOp extends NullOp implements PluggableImageOp {
             System.out.println(c.getRed() + ", " + c.getGreen() + ", " + c.getBlue());
         }
 
+        //Pseudo Code from the Power Point.
+        for (Location pt : new RasterScanner(src, false)) {
+            // For every pixel....
+            int index = getClosestIndex(src.getRGB(pt.col, pt.row)); // index of palette color closest todo needs update.
+            dest.setRGB(pt.col, pt.row, index); // set the destination to that color.
+            int error = src.getRGB(pt.col, pt.row) - dest.getRGB(pt.col, pt.row); // Calculate the error.
+            // Diffuse the error to the nearby pixels on a band-by-band basis.
+            diffuseError(error);
+        }
+
         return dest;
+    }
+
+    private int getClosestIndex(int color) {
+
+        for (Color c : palette) {
+            distanceBetween(c.getRGB(), color);
+        }
+
+        return 0;
+    }
+
+    private int distanceBetween(int c1, int c2) {
+        int[] rgb = new int[]{
+                (c1 >> 16) & 0xff, (c1 >> 8) & 0xff, (c1 & 0xff)
+        };
+        int[] rgb2 = new int[]{
+                (c2 >> 16) & 0xff, (c2 >> 8) & 0xff, (c2 & 0xff)
+        };
+        return Math.sqrt();
+    }
+
+    private void diffuseError(int error) {
+
     }
 
     @Override
