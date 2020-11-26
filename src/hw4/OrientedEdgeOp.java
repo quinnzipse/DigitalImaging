@@ -17,11 +17,9 @@ public class OrientedEdgeOp extends NullOp implements PluggableImageOp {
     private double strength;
     private double orientation;
     private double epsilon;
-    private boolean invertMax, invertMin;
     private double max, min;
 
     public OrientedEdgeOp() {
-        this(.5, .75, .15);
     }
 
     public OrientedEdgeOp(double strength, double orientation, double epsilon) {
@@ -31,12 +29,10 @@ public class OrientedEdgeOp extends NullOp implements PluggableImageOp {
         max = this.orientation + epsilon;
         if (max > 1) {
             max -= 1;
-            invertMax = true;
         }
         min = this.orientation - epsilon;
         if (min < 0) {
             min += 1;
-            invertMin = true;
         }
     }
 
