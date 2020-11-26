@@ -1,6 +1,5 @@
 package hw4;
 
-import hw1.IndexedDigitalImage;
 import pixeljelly.ops.NullOp;
 import pixeljelly.ops.PluggableImageOp;
 import pixeljelly.scanners.Location;
