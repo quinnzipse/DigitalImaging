@@ -4,7 +4,10 @@ import javax.imageio.ImageIO;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorConvertOp;
-import java.io.*;
+import java.awt.image.ColorModel;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.net.URL;
 
 public class RLECompressor {
@@ -16,19 +19,22 @@ public class RLECompressor {
 
             switch (args[0].toLowerCase()) {
                 case "encode":
-                    OutputStream os = new FileOutputStream(args[3] + ".rle");
+                    OutputStream os = new FileOutputStream(args[3]);
                     RunLengthEncoder compressor = new RunLengthEncoder();
 
                     compressor.encode(getImage(args[1], args[2]), os);
                     break;
                 case "decode":
-                    InputStream is = new FileInputStream(args[1]);
                     RunLengthDecoder decoder = new RunLengthDecoder();
+                    File in = new File(args[1]), out = new File(args[2]);
 
-                    BufferedImage image = decoder.decode(is);
+                    if (decoder.canDecode(in)) {
+                        BufferedImage image = decoder.decode(in);
+                        ImageIO.write(image, "png", out);
+                    } else {
+                        throw new Exception("Incompatible File!");
+                    }
 
-                    File file = new File(args[2]);
-                    ImageIO.write(image, ".png", file);
                     break;
                 default:
                     throw new Exception("Mode Invalid!");
@@ -49,11 +55,12 @@ public class RLECompressor {
         if (model.equalsIgnoreCase("hsb")) {
             op = new ColorConvertOp(img.getColorModel().getColorSpace(), ColorSpace.getInstance(ColorSpace.TYPE_HSV), null);
         } else {
-            op = new ColorConvertOp(img.getColorModel().getColorSpace(), ColorSpace.getInstance(ColorSpace.TYPE_RGB), null);
+            op = new ColorConvertOp(img.getColorModel().getColorSpace(), ColorModel.getRGBdefault().getColorSpace(), null);
         }
 
         // Convert the image to the selected color space
         return op.filter(img, null);
+//        return img;
     }
 
 }

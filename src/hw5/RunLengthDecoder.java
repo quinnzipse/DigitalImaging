@@ -29,12 +29,12 @@ public class RunLengthDecoder extends ImageDecoder {
 
         for (int band = 0; band < out.getSampleModel().getNumBands(); band++) {
             for (int bit = 0; bit < out.getSampleModel().getSampleSize(band); bit++) {
+                boolean isWhite = true;
                 for (int y = 0; y < out.getHeight(); y++) {
                     int colsRecovered = 0;
-                    boolean isWhite = true;
                     while (colsRecovered < out.getWidth()) {
                         int run = in.read();
-                        recoverRun(band, bit, y, isWhite, run, out);
+                        recoverRun(band, bit, colsRecovered, y, isWhite, run, out);
                         colsRecovered += run;
                         if (run != 255) isWhite = !isWhite;
                     }
@@ -45,21 +45,17 @@ public class RunLengthDecoder extends ImageDecoder {
         return out;
     }
 
-    private void recoverRun(int band, int bit, int y, boolean isWhite, int run, BufferedImage img) {
+    private void recoverRun(int band, int bit, int colOffset, int y, boolean isWhite, int run, BufferedImage img) {
         if (!isWhite) return;
+        int mask = (1 << bit);
 
-        for (int i = 0; i < run; i++) {
-            int sample = img.getRaster().getSample(i, y, band);
-            img.getRaster().setSample(i, y, band, sample | 1 << bit);
+        for (int x = colOffset; x < run + colOffset; x++) {
+            int sample = img.getRaster().getSample(x, y, band) | mask;
+            img.getRaster().setSample(x, y, band, sample);
         }
     }
 
     private boolean magicWordMatches(DataInputStream inputStream) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < getMagicWord().length(); i++) {
-            sb.append(inputStream.readChar());
-        }
-
-        return !getMagicWord().equals(sb.toString());
+        return getMagicWord().equals(inputStream.readUTF());
     }
 }
