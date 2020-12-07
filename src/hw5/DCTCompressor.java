@@ -10,7 +10,7 @@ import java.awt.image.ColorConvertOp;
 import java.net.URL;
 
 public class DCTCompressor {
-    private static ColorSpace yCbCr = ColorSpace.getInstance(ColorSpace.TYPE_YCbCr);
+    private static final ColorSpace yCbCr = ColorSpace.getInstance(ColorSpace.TYPE_YCbCr);
 
     public static void main(String[] args) {
         try {
