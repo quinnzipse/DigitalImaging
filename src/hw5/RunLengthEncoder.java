@@ -32,13 +32,13 @@ public class RunLengthEncoder extends ImageEncoder {
 
     private boolean getBit(int sample, int bit) {
 
-        // Grey Codes?
-//        sample ^= sample >> 8;
-//        sample ^= sample >> 4;
-//        sample ^= sample >> 2;
-//        sample ^= sample >> 1;
+        sample = binToGrey(sample);
 
         return (sample & (0x1 << bit)) != 0;
+    }
+
+    private int binToGrey(int sample){
+        return sample ^ (sample >> 1);
     }
 
     private int getRun(BufferedImage source, int col, int row, int band, int bit, boolean isWhite) {

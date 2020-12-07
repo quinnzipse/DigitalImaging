@@ -53,14 +53,13 @@ public class RLECompressor {
 
         ColorConvertOp op;
         if (model.equalsIgnoreCase("hsb")) {
-            op = new ColorConvertOp(img.getColorModel().getColorSpace(), ColorSpace.getInstance(ColorSpace.TYPE_HSV), null);
+            op = new ColorConvertOp(img.getColorModel().getColorSpace(), ColorSpace.getInstance(ColorSpace.TYPE_HLS), null);
         } else {
             op = new ColorConvertOp(img.getColorModel().getColorSpace(), ColorModel.getRGBdefault().getColorSpace(), null);
         }
 
         // Convert the image to the selected color space
         return op.filter(img, null);
-//        return img;
     }
 
 }

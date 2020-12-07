@@ -1,6 +1,8 @@
 package hw5;
 
 import pixeljelly.io.ImageDecoder;
+import pixeljelly.scanners.Location;
+import pixeljelly.scanners.RasterScanner;
 
 import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
@@ -42,7 +44,21 @@ public class RunLengthDecoder extends ImageDecoder {
             }
         }
 
+        for (Location pt : new RasterScanner(out, true)) {
+            int sample = greyToBin(out.getRaster().getSample(pt.col, pt.row, pt.band));
+            out.getRaster().setSample(pt.col, pt.row, pt.band, sample);
+        }
+
         return out;
+    }
+
+    private int greyToBin(int num) {
+        int mask = num;
+        while (mask != 0) {
+            mask >>= 1;
+            num ^= mask;
+        }
+        return num;
     }
 
     private void recoverRun(int band, int bit, int colOffset, int y, boolean isWhite, int run, BufferedImage img) {
