@@ -64,9 +64,9 @@ public class RLEEncoder extends ImageEncoder {
         }
     }
 
-    private void write(OutputStream os, int num) throws Exception {
-        if(num > 255) {
-            throw new IOException("Num Out of Bounds!");
+    private void write(OutputStream os, int num) throws IOException {
+        if (num > 255) {
+//            throw new IOException("Num Out of Bounds!");
         }
         os.write(num);
     }

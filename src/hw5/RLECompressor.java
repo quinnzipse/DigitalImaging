@@ -1,9 +1,5 @@
 package hw5;
 
-import pixeljelly.io.ImageEncoder;
-import pixeljelly.scanners.Location;
-import pixeljelly.scanners.RasterScanner;
-
 import javax.imageio.ImageIO;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
@@ -12,19 +8,6 @@ import java.io.*;
 import java.net.URL;
 
 public class RLECompressor {
-//    private static final int bitDepth = 8;
-//    private final BufferedImage img;
-//    private final int[][] rle;
-//    private final int[][] previous;
-//    private final RandomAccessFile writer;
-//
-//    public RLECompressor(BufferedImage img, String fileName) throws FileNotFoundException {
-//        this.img = img;
-//        rle = new int[img.getRaster().getNumBands()][bitDepth];
-//        previous = new int[img.getRaster().getNumBands()][bitDepth];
-//        writer = new RandomAccessFile(fileName, "rw");
-//    }
-
     public static void main(String[] args) {
         try {
             if (args.length < 2) {
@@ -33,19 +16,27 @@ public class RLECompressor {
 
             switch (args[0].toLowerCase()) {
                 case "encode":
-                    OutputStream os = new FileOutputStream(args[3]);
-                    RLEEncoder compressor = new RLEEncoder();
+                    OutputStream os = new FileOutputStream(args[3] + ".rle");
+                    RunLengthEncoder compressor = new RunLengthEncoder();
 
                     compressor.encode(getImage(args[1], args[2]), os);
                     break;
                 case "decode":
+                    InputStream is = new FileInputStream(args[1]);
+                    RunLengthDecoder decoder = new RunLengthDecoder();
+
+                    BufferedImage image = decoder.decode(is);
+
+                    File file = new File(args[2]);
+                    ImageIO.write(image, ".png", file);
                     break;
                 default:
                     throw new Exception("Mode Invalid!");
             }
 
         } catch (Exception e) {
-            System.out.println("DCTCompressor Usage: \n DCTCompressor <mode> <input> [<N>] <output>\n");
+            System.out.println("RLECompressor Usage: \n RLECompressor <mode> <input> [<model>] <output>\n\n");
+            e.printStackTrace();
         }
     }
 
@@ -64,10 +55,5 @@ public class RLECompressor {
         // Convert the image to the selected color space
         return op.filter(img, null);
     }
-
-//    private void encode() throws Exception {
-//
-//
-//    }
 
 }
