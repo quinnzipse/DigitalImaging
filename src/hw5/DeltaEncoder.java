@@ -50,15 +50,24 @@ public class DeltaEncoder extends ImageEncoder {
                 if (error > 0) { //deltas[pt.band]
                     // write if it's bigger or smaller than the delta amount.
                     os.writeBit(1);
-                    prev += deltas[b];
+                    prev = clamp(prev + deltas[b]);
                 } else {
                     os.writeBit(0);
-                    prev -= deltas[b];
+                    prev = clamp(prev - deltas[b]);
                 }
             }
         }
         os.flush();
 
         os.close();
+    }
+
+    public int clamp(int num) {
+        if (num > 255) {
+            return 255;
+        } else if (num < 0) {
+            return 0;
+        }
+        return num;
     }
 }

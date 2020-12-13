@@ -46,17 +46,17 @@ public class DeltaDecoder extends ImageDecoder {
 
         for (int b = 0; b < destImg.getRaster().getNumBands(); b++) {
             System.out.println(b);
-            int i=0;
+            int i = 0;
             for (Location pt : new RasterScanner(destImg, false)) {
                 if (pt.col == 0) {
-                    while((i % 7) != 0){
+                    while ((i % 7) != 0) {
                         i++;
                         inStream.readBit();
                     }
                     prev = inStream.read();
-                    i=0;
+                    i = 0;
                 } else if (inStream.readBit() == 0) {
-                    prev -= deltas[b];
+                    prev = clamp(prev - deltas[b]);
                 } else {
                     prev += deltas[b];
                 }
@@ -66,5 +66,14 @@ public class DeltaDecoder extends ImageDecoder {
         }
 
         return destImg;
+    }
+
+    public int clamp(int num) {
+        if (num > 255) {
+            return 255;
+        } else if (num < 0) {
+            return 0;
+        }
+        return num;
     }
 }

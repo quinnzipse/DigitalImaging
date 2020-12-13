@@ -1,6 +1,5 @@
 package hw5;
 
-import pixeljelly.features.Histogram;
 import pixeljelly.io.ImageEncoder;
 import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
@@ -9,7 +8,6 @@ import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
 
 public class CACEncoder extends ImageEncoder {
     private final int[] tols;
@@ -30,7 +28,7 @@ public class CACEncoder extends ImageEncoder {
         MemoryCacheImageOutputStream out = new MemoryCacheImageOutputStream(outputStream);
         writeHeader(bufferedImage, out);
 
-        for (int band = 0; band < bufferedImage.getRaster().getNumBands(); band++) {
+        for (int band = 0; band < 3; band++) {
             write(bufferedImage, out, 0, 0, bufferedImage.getWidth(), bufferedImage.getHeight(), band);
         }
 
@@ -43,11 +41,12 @@ public class CACEncoder extends ImageEncoder {
         BufferedImage subImg = src.getSubimage(x, y, w, h);
 
         if (isSimilar(subImg, b)) {
+//            System.out.println("is similar");
             int avg = averageSample(subImg, b);
 
             outStream.writeByte(clamp(avg));
         } else {
-            outStream.writeByte(0);
+            outStream.writeByte(255);
             // Quadrant 0
             write(src, outStream, x + w / 2, y, w - w / 2, h / 2, b);
             // Quadrant 1
@@ -76,10 +75,12 @@ public class CACEncoder extends ImageEncoder {
     }
 
     private boolean isSimilar(BufferedImage src, int band) {
-        Histogram h = new Histogram(src, band);
-        int[] counts = h.getCounts();
+        long sum = 0;
+        for (Location pt : new RasterScanner(src, false)) {
+            sum += src.getRaster().getSample(pt.col, pt.row, band);
+        }
 
-        double mean = calSums(counts) / Arrays.stream(counts).sum();
+        double mean = (double) sum / (src.getWidth() * src.getHeight());
 
         return rootMeanSquared(src, band, mean) < tols[band];
     }
@@ -94,13 +95,5 @@ public class CACEncoder extends ImageEncoder {
         sum /= (src.getWidth() * src.getHeight());
 
         return Math.sqrt(sum);
-    }
-
-    private double calSums(int[] counts) {
-        int sum = 0;
-        for (int i = 0; i < counts.length; i++) {
-            sum += counts[i] * i;
-        }
-        return sum;
     }
 }

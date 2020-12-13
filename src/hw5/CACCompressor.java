@@ -17,8 +17,9 @@ public class CACCompressor {
 
             switch (args[0].toLowerCase()) {
                 case "encode":
-                    CACEncoder cacCompressor = new CACEncoder(new int[]{10, 20, 10});
-                    cacCompressor.encode(getImage(args[1], args[2]), new File("something"));
+                    CACEncoder cacCompressor = new CACEncoder(new int[]{Integer.parseInt(args[3]),
+                            Integer.parseInt(args[4]), Integer.parseInt(args[5])});
+                    cacCompressor.encode(getImage(args[1], args[2]), new File(args[args.length - 1]));
                     break;
                 case "decode":
                     CACDecoder decoder = new CACDecoder();
@@ -45,17 +46,9 @@ public class CACCompressor {
     private static BufferedImage getImage(String inURL, String model) throws Exception {
         // Get the image from the internet.
         URL url = new URL(inURL);
-        BufferedImage img = ImageIO.read(url);
-
-        ColorConvertOp op;
-        if (model.equalsIgnoreCase("hsb")) {
-            op = new ColorConvertOp(img.getColorModel().getColorSpace(), ColorSpace.getInstance(ColorSpace.TYPE_HLS), null);
-        } else {
-            op = new ColorConvertOp(img.getColorModel().getColorSpace(), ColorModel.getRGBdefault().getColorSpace(), null);
-        }
 
         // Convert the image to the selected color space
-        return op.filter(img, null);
+        return ImageIO.read(url);
     }
 
 }

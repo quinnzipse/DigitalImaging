@@ -1,17 +1,11 @@
 package hw5;
 
-import pixeljelly.scanners.Location;
-import pixeljelly.scanners.RasterScanner;
-
 import javax.imageio.ImageIO;
-import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorConvertOp;
+import java.io.File;
 import java.net.URL;
 
 public class DCTCompressor {
-    private static final ColorSpace yCbCr = ColorSpace.getInstance(ColorSpace.TYPE_YCbCr);
-
     public static void main(String[] args) {
         try {
             if (args.length < 3) {
@@ -20,9 +14,12 @@ public class DCTCompressor {
 
             switch (args[0].toLowerCase()) {
                 case "encode":
-                    encode(args[1], Integer.parseInt(args[2]), args[3]);
+                    DCTEncoder encoder = new DCTEncoder();
+                    encoder.encode(getImage(args[1]), new File(args[args.length - 1]));
                     break;
                 case "decode":
+                    DCTDecoder decoder = new DCTDecoder();
+                    decoder.decode(new File(args[1]));
                     break;
                 default:
                     throw new Exception("Mode Invalid!");
@@ -33,28 +30,11 @@ public class DCTCompressor {
         }
     }
 
-    private static void encode(String inURL, int n, String compressedName) throws Exception {
-
-        if (n < 1 || n > 64) {
-            throw new Exception("N out of bounds!");
-        }
-
+    private static BufferedImage getImage(String inURL) throws Exception {
         // Get the image from the internet.
         URL url = new URL(inURL);
-        BufferedImage img = ImageIO.read(url);
 
-        // Convert the image to yCbCr
-        ColorConvertOp op = new ColorConvertOp(img.getColorModel().getColorSpace(), yCbCr, null);
-        img = op.filter(img, null);
-
-        // Get the samples in their respective bands.
-        int[][] b = new int[3][img.getHeight() * img.getWidth()];
-        for (int i = 0; i < b.length; i++) {
-            img.getRaster().getSamples(0, 0, img.getWidth(), img.getHeight(), i, b[i]);
-        }
-
-        for (Location pt : new RasterScanner(img.getRaster().getBounds())) {
-
-        }
+        // Convert the image to the selected color space
+        return ImageIO.read(url);
     }
 }
