@@ -19,7 +19,7 @@ public class CACCompressor {
                 case "encode":
                     CACEncoder cacCompressor = new CACEncoder(new int[]{10, 20, 10});
                     cacCompressor.encode(getImage(args[1], args[2]), new File("something"));
-                    break;+
+                    break;
                 case "decode":
                     CACDecoder decoder = new CACDecoder();
                     File in = new File(args[1]), out = new File(args[2]);
