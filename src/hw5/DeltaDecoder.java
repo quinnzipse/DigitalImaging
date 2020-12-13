@@ -10,10 +10,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class DeltaDecoder extends ImageDecoder {
-    public double[] deltas;
+    public int[] deltas;
 
-    public DeltaDecoder(double[] deltas) {
-        this.deltas = deltas;
+    public DeltaDecoder() {
     }
 
     @Override
@@ -24,27 +23,40 @@ public class DeltaDecoder extends ImageDecoder {
     @Override
     public BufferedImage decode(InputStream inputStream) throws IOException {
         MemoryCacheImageInputStream inStream = new MemoryCacheImageInputStream(inputStream);
-        inputStream.readNBytes(getMagicWord().length());
+        if (!inStream.readUTF().equals(getMagicWord())) {
+            return null;
+        }
 
         int width = inStream.readShort();
         int height = inStream.readShort();
         int type = inStream.readInt();
 
-        BufferedImage destImg = new BufferedImage(width, height, type);
+        BufferedImage destImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+        deltas = new int[destImg.getRaster().getNumBands()];
+
+        for (int i = 0; i < deltas.length; i++) {
+            deltas[i] = inStream.readByte();
+            System.out.print(deltas[i] + " ");
+        }
+        System.out.println();
 
         int prev = 0;
 
-        for (Location pt : new RasterScanner(destImg, true)) {
+        for (int b = 0; b < destImg.getRaster().getNumBands(); b++) {
+            System.out.println(b);
+            for (Location pt : new RasterScanner(destImg, false)) {
 
-            if (pt.col == 0) {
-                prev = inStream.readByte();
-            } else if (inStream.readBit() == 0) {
-                prev -= deltas[pt.band];
-            } else {
-                prev += deltas[pt.band];
+                if (pt.col == 0) {
+                    prev = inStream.readByte();
+                } else if (inStream.readBit() == 0) {
+//                    prev -= deltas[b];
+                } else {
+//                    prev += deltas[b];
+                }
+
+                destImg.getRaster().setSample(pt.col, pt.row, b, prev);
             }
-
-            destImg.getRaster().setSample(pt.col, pt.row, pt.band, prev);
         }
 
         return destImg;

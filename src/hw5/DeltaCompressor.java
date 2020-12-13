@@ -24,13 +24,13 @@ public class DeltaCompressor {
             switch (mode.toLowerCase()) {
                 case "encode":
                     OutputStream os = new FileOutputStream(output);
-                    double[] deltas = new double[]{Double.parseDouble(args[3]),
-                            Double.parseDouble(args[4]), Double.parseDouble(args[5])};
+                    int[] deltas = new int[]{Integer.parseInt(args[3]),
+                            Integer.parseInt(args[4]), Integer.parseInt(args[5])};
                     ImageEncoder compressor = new DeltaEncoder(deltas);
                     compressor.encode(getImage(input, args[2]), os);
                     break;
                 case "decode":
-                    RunLengthDecoder decoder = new RunLengthDecoder();
+                    DeltaDecoder decoder = new DeltaDecoder();
                     File in = new File(input), out = new File(output);
 
                     if (decoder.canDecode(in)) {
@@ -46,7 +46,7 @@ public class DeltaCompressor {
             }
 
         } catch (Exception e) {
-            System.out.println("RLECompressor Usage: \n RLECompressor <mode> <input> [<model>] <output>\n\n");
+            System.out.println("DeltaCompressor Usage: \n DeltaCompressor <mode> <input> [<model> <D1> <D2> <D3>] <output>\n\n");
             e.printStackTrace();
         }
     }
