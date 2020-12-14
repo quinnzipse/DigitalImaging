@@ -14,12 +14,14 @@ public class DCTCompressor {
 
             switch (args[0].toLowerCase()) {
                 case "encode":
-                    DCTEncoder encoder = new DCTEncoder();
+                    DCTEncoder encoder = new DCTEncoder(Integer.parseInt(args[2]));
                     encoder.encode(getImage(args[1]), new File(args[args.length - 1]));
                     break;
                 case "decode":
                     DCTDecoder decoder = new DCTDecoder();
-                    decoder.decode(new File(args[1]));
+                    File out = new File(args[2]);
+                    BufferedImage image = decoder.decode(new File(args[1]));
+                    ImageIO.write(image, "png", out);
                     break;
                 default:
                     throw new Exception("Mode Invalid!");
@@ -27,6 +29,7 @@ public class DCTCompressor {
 
         } catch (Exception e) {
             System.out.println("DCTCompressor Usage: \n DCTCompressor <mode> <input> [<N>] <output>\n");
+            e.printStackTrace();
         }
     }
 
