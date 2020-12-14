@@ -1,6 +1,7 @@
 package hw5;
 
 import pixeljelly.io.ImageEncoder;
+import pixeljelly.io.LossyCACEncoder;
 import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
 
@@ -10,11 +11,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class CACEncoder extends ImageEncoder {
-    private final int[] tols;
-    private static final int min = 0;
-    private static final int max = 254;
+    private final double[] tols;
+    private static final int min = 1;
+    private static final int max = 255;
 
-    public CACEncoder(int[] tolerances) {
+    public CACEncoder(double[] tolerances) {
         tols = tolerances;
     }
 
@@ -31,7 +32,7 @@ public class CACEncoder extends ImageEncoder {
         for (int band = 0; band < 3; band++) {
             write(bufferedImage, out, 0, 0, bufferedImage.getWidth(), bufferedImage.getHeight(), band);
         }
-
+        
         out.close();
     }
 
@@ -40,13 +41,16 @@ public class CACEncoder extends ImageEncoder {
 
         BufferedImage subImg = src.getSubimage(x, y, w, h);
 
-        if (isSimilar(subImg, b)) {
+        double average = averageSample(subImg, b);
+        double std = rootMeanSquared(subImg, b, average);
+
+        if (std < tols[b] || w == 1 || h == 1) {
 //            System.out.println("is similar");
             int avg = averageSample(subImg, b);
 
             outStream.writeByte(clamp(avg));
         } else {
-            outStream.writeByte(255);
+            outStream.writeByte(0);
             // Quadrant 0
             write(src, outStream, x + w / 2, y, w - w / 2, h / 2, b);
             // Quadrant 1

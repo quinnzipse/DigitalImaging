@@ -17,8 +17,8 @@ public class CACCompressor {
 
             switch (args[0].toLowerCase()) {
                 case "encode":
-                    CACEncoder cacCompressor = new CACEncoder(new int[]{Integer.parseInt(args[3]),
-                            Integer.parseInt(args[4]), Integer.parseInt(args[5])});
+                    CACEncoder cacCompressor = new CACEncoder(new double[]{Double.parseDouble(args[3]),
+                            Double.parseDouble(args[4]), Double.parseDouble(args[5])});
                     cacCompressor.encode(getImage(args[1], args[2]), new File(args[args.length - 1]));
                     break;
                 case "decode":

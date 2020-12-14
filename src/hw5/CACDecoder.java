@@ -15,13 +15,12 @@ public class CACDecoder extends ImageDecoder {
 
     @Override
     public BufferedImage decode(InputStream inputStream) throws IOException {
+
         MemoryCacheImageInputStream inStream = new MemoryCacheImageInputStream(inputStream);
 
         if (!inStream.readUTF().equals(getMagicWord())) {
             return null;
         }
-
-//        pixeljelly.io.LossyCACDecoder
 
         int width = inStream.readShort();
         int height = inStream.readShort();
@@ -30,35 +29,31 @@ public class CACDecoder extends ImageDecoder {
         BufferedImage img = new BufferedImage(width, height, type);
 
         for (int i = 0; i < 3; i++) {
-            restore(0, 0, img.getWidth(), img.getHeight(), i, img, inStream);
+            restore(0, 0, width, height, i, img, inStream);
         }
 
         return img;
     }
 
     public void restore(int x, int y, int w, int h, int b, BufferedImage img, MemoryCacheImageInputStream inputStream) throws IOException {
-        if (w > 0 && h > 0) return;
+        if (w <= 0 || h <= 0) return;
 
         int inByte = inputStream.read();
-        if (inByte == 255) {
-            // recur
-            restore(x + w / 2, y, w - w / 2, h / 2, b, img, inputStream);
-            restore(x, y, w / 2, h / 2, b, img, inputStream);
-            restore(x, y + h / 2, w / 2, h - h / 2, b, img, inputStream);
-            restore(x + w / 2, y + h / 2, w - w / 2, h - h / 2, b, img, inputStream);
-        } else {
-            int width = x + w;
-            int height = y + h;
-            while (y < height) {
-                System.out.print(y + " ");
-                while (x < width) {
-                    System.out.print(x + " ");
-                    img.getRaster().setSample(x, y, b, inByte);
-                    x++;
+        if (inByte != 0) {
+            for (int col = x; col < x + w; col++) {
+                for (int row = y; row < y + h; row++) {
+                    img.getRaster().setSample(col, row, b, inByte);
                 }
-                System.out.println();
-                y++;
             }
+        } else {
+            // Quadrant 0
+            restore(x + w / 2, y, w - w / 2, h / 2, b, img, inputStream);
+            // Quadrant 1
+            restore(x, y, w / 2, h / 2, b, img, inputStream);
+            // Quadrant 2
+            restore(x, y + h / 2, w / 2, h - h / 2, b, img, inputStream);
+            // Quadrant 3
+            restore(x + w / 2, y + h / 2, w - w / 2, h - h / 2, b, img, inputStream);
         }
     }
 }
