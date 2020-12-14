@@ -79,7 +79,7 @@ public class DCTEncoder extends ImageEncoder {
         int i = 0;
         for (Location pt : new RasterScanner(new BufferedImage(8, 8, 1), false)) {
             if (i < n) {
-                os.writeByte((int) data[pt.row][pt.col]);
+                os.writeByte((byte) data[pt.row][pt.col]);
             }
         }
 

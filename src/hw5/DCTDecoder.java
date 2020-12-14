@@ -52,21 +52,16 @@ public class DCTDecoder extends ImageDecoder {
                 int tN = 0;
                 for (Location pt : new ZigZagScanner(smalls, 8, 8)) {
                     if (tN < n) {
-                        try {
-                            dctIn[pt.row][pt.col] = inStream.readByte() * quantizationTable[pt.row][pt.col];
-                            tN++;
-                        } catch (Exception e) {
-                            System.out.println(rectangle.x + " " + rectangle.y);
-                            throw e;
-                        }
+                        dctIn[pt.row][pt.col] = inStream.readByte() * quantizationTable[pt.row][pt.col];
+                        tN++;
                     }
                 }
 
-                int[][] samples = inverseDCT(dctIn, n);
+                int[][] samples = inverseDCT(dctIn);
 
                 for (Location pt : new RasterScanner(rectangle)) {
                     if (pt.col < width && pt.row < height) {
-                        img.getRaster().setSample(pt.col, pt.row, band, samples[pt.col - rectangle.x][pt.row - rectangle.y]);
+                        img.getRaster().setSample(pt.col, pt.row, band, samples[pt.row - rectangle.y][pt.col - rectangle.x]);
                     }
                 }
 
@@ -75,7 +70,7 @@ public class DCTDecoder extends ImageDecoder {
         return img;
     }
 
-    public int[][] inverseDCT(int[][] dctIn, int n) {
+    public int[][] inverseDCT(int[][] dctIn) {
         int[][] result = new int[8][8];
         double aU, aV;
 
@@ -87,14 +82,14 @@ public class DCTDecoder extends ImageDecoder {
                 for (int u = 0; u < dctIn.length; u++) {
 
                     // calc aU
-                    if (u == 0) aU = Math.sqrt(1.0 / n);
-                    else aU = Math.sqrt(2.0 / n);
+                    if (u == 0) aU = Math.sqrt(1.0 / 8);
+                    else aU = Math.sqrt(2.0 / 8);
                     double cosU = Math.cos(((2 * x + 1) * u * Math.PI) / 16);
 
                     for (int v = 0; v < dctIn.length; v++) {
 
-                        if (v == 0) aV = Math.sqrt(1.0 / n);
-                        else aV = Math.sqrt(2.0 / n);
+                        if (v == 0) aV = Math.sqrt(1.0 / 8);
+                        else aV = Math.sqrt(2.0 / 8);
 
                         int cUV = dctIn[u][v];
 
