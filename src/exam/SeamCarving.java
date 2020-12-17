@@ -22,51 +22,23 @@ public class SeamCarving {
 
         ImageIO.write(new MagnitudeOfGradientOp().filter(img, null), "png", new File("mog.png"));
 
-        BufferedImage energy = getEdges(img);
-
-        EdgeMap map = new EdgeMap(energy);
+        EdgeMap map = new EdgeMap(img);
+        ImageIO.write(map.getEnergyImg(), "png", new File("edgeMap.png"));
 
         int[] path = new int[img.getHeight()];
 
-//        for (int i = 0; i < 200; i++) {
-            map.findPath(path);
-            img = map.deletePath(path, img);
-//        }
+        for (int i = 0; i < 500; i++) {
+            System.out.println("Deleting line " + i);
+            path = map.findPath(path);
+            map.deletePath(path);
+        }
 
-        ImageIO.write(img, "png", new File("carved.png"));
-//        ImageIO.write(map.toImg(), "png", new File("edgeMap.png"));
+        ImageIO.write(map.getImg(), "png", new File("carved.png"));
 //        ImageIO.write(energy, "png", new File("edges.png"));
     }
 
     private static BufferedImage getImage(String imgUrl) throws IOException {
         URL url = new URL(imgUrl);
         return ImageIO.read(url);
-    }
-
-    private static BufferedImage getEdges(BufferedImage in) {
-        return new BandExtractOp(SimpleColorModel.HSV, 2).filter(detectEdges(in), null);
-    }
-
-    private static BufferedImage detectEdges(BufferedImage in) {
-
-        // Create a X and Y Sobel Kernel.
-        Kernel2D kernelX = new SeperableKernel(new float[]{1, 2, 1}, new float[]{1, 0, -1});
-        Kernel2D kernelY = new SeperableKernel(new float[]{1, 0, -1}, new float[]{1, 2, 1});
-
-        // Apply them to the images.
-        BufferedImage imgX = new ConvolutionOp(kernelX, true).filter(in, null);
-        BufferedImage imgY = new ConvolutionOp(kernelY, true).filter(in, null);
-
-        BufferedImage dest = new BufferedImage(imgY.getWidth(), imgY.getHeight(), imgY.getType());
-
-        // Return the combination of the two.
-        for (Location pt : new RasterScanner(dest, false)) {
-            int x = imgX.getRaster().getSample(pt.col, pt.row, 0);
-            int y = imgY.getRaster().getSample(pt.col, pt.row, 0);
-
-            dest.getRaster().setSample(pt.col, pt.row, 0, ColorUtilities.clamp(Math.sqrt(x * x + y * y)));
-        }
-
-        return dest;
     }
 }

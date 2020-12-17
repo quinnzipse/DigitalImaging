@@ -7,39 +7,43 @@ import java.awt.image.BufferedImage;
 
 public class EdgeMap {
 
-    private final BufferedImage img;
+    private BufferedImage src;
     private int[][] energy;
     private int max = 0;
 
-    public EdgeMap(BufferedImage img) {
-        this.img = img;
-        this.energy = new int[img.getWidth()][img.getHeight()];
-        initEnergy();
+    public EdgeMap(BufferedImage srcImg) {
+        this.src = srcImg;
+        this.energy = new int[srcImg.getWidth()][srcImg.getHeight()];
+        initEnergy(new EdgeDetectionOp().filter(srcImg, null));
     }
 
-    public BufferedImage toImg() {
-        BufferedImage out = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+    public BufferedImage getImg() {
+        return src;
+    }
 
-        for (Location pt : new RasterScanner(img, false)) {
+    public BufferedImage getEnergyImg() {
+        BufferedImage out = new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
+
+        for (Location pt : new RasterScanner(src, false)) {
             out.getRaster().setSample(pt.col, pt.row, 0, (int) (energy[pt.col][pt.row] / (max / 255.0)));
         }
 
         return out;
     }
 
-    private void initEnergy() {
+    private void initEnergy(BufferedImage edgedImage) {
 
         // Initialize the destination img by copying the bottom row.
-        for (int x = 0; x < img.getWidth(); x++) {
-            energy[x][img.getHeight() - 1] = img.getRaster().getSample(x, img.getHeight() - 1, 0);
+        for (int x = 0; x < edgedImage.getWidth(); x++) {
+            energy[x][edgedImage.getHeight() - 1] = edgedImage.getRaster().getSample(x, edgedImage.getHeight() - 1, 0);
         }
 
         // Iterate through the image from bottom to top.
-        for (int y = img.getHeight() - 2; y >= 0; y--) {
-            for (int x = 0; x < img.getWidth(); x++) {
-                int greyVal = img.getRaster().getSample(x, y, 0);
+        for (int y = edgedImage.getHeight() - 2; y >= 0; y--) {
+            for (int x = 0; x < edgedImage.getWidth(); x++) {
+                int greyVal = edgedImage.getRaster().getSample(x, y, 0);
 
-                energy[x][y] = greyVal + findBestPath(x, y);
+                energy[x][y] = greyVal + energy[findBestPath(x, y)][y + 1];
             }
         }
     }
@@ -49,6 +53,7 @@ public class EdgeMap {
         int left = getEnergy(x - 1, y + 1);
         int right = getEnergy(x + 1, y + 1);
         int min = getEnergy(x, y + 1);
+        int minIndex = x;
 
         max = Math.max(left, max);
         max = Math.max(right, max);
@@ -56,58 +61,57 @@ public class EdgeMap {
 
         if (left < min && left != -1) {
             min = left;
-        } else if (right < min && right != -1) {
-            min = right;
+            minIndex = x - 1;
+        }
+        if (right < min && right != -1) {
+            minIndex = x + 1;
         }
 
-        return min;
+        return minIndex;
     }
 
-    public BufferedImage deletePath(int[] path, BufferedImage img) {
-        BufferedImage dest = new BufferedImage(img.getWidth() - 1, img.getHeight(), img.getType());
+    public void deletePath(int[] path) {
+        BufferedImage dest = new BufferedImage(src.getWidth() - 1, src.getHeight(), src.getType());
+        int[][] newEnergy = new int[energy.length - 1][energy[0].length];
 
-        for (Location pt : new RasterScanner(img, false)) {
+        for (Location pt : new RasterScanner(dest, false)) {
+
             if (path[pt.row] == pt.col) continue;
 
             // If the location is after the removal, shift over one.
             int offset = path[pt.row] < pt.col ? 1 : 0;
 
-            dest.setRGB(pt.col - offset, pt.row, img.getRGB(pt.col, pt.row));
+            newEnergy[pt.col - offset][pt.row] = energy[pt.col][pt.row];
+
+            dest.setRGB(pt.col - offset, pt.row, src.getRGB(pt.col, pt.row));
         }
 
-        return dest;
+        energy = newEnergy;
+        src = dest;
     }
 
     public int[] findPath(int[] path) {
-        if (path == null || path.length != img.getHeight()) {
-            path = new int[img.getHeight()];
+        if (path == null || path.length != src.getHeight()) {
+            path = new int[src.getHeight()];
         }
 
         path[0] = getStartingPoint();
         int y = 1;
 
-        while (y < img.getHeight() - 1) {
-            path[y] = findBestPath(path[y - 1], y);
+        while (y < src.getHeight()) {
+            path[y] = findBestPath(path[y - 1], y - 1);
             y++;
         }
 
         return path;
     }
 
-//    private int findNext(int x, int y) {
-//        int left = getEnergy(x - 1, y + 1);
-//        int mid = getEnergy(x, y + 1);
-//        int right = getEnergy(x + 1, y + 1);
-//
-//
-//    }
-
     private int getStartingPoint() {
         int minIndex = 0,
                 minValue = energy[0][0],
                 val;
 
-        for (int x = 1; x < img.getWidth(); x++) {
+        for (int x = 1; x < src.getWidth(); x++) {
             val = energy[x][0];
             if (val < minValue) {
                 minIndex = x;
@@ -119,7 +123,7 @@ public class EdgeMap {
     }
 
     private int getEnergy(int x, int y) {
-        if (x < img.getWidth() && x >= 0) {
+        if (x < energy.length && x >= 0) {
             return energy[x][y];
         }
 
