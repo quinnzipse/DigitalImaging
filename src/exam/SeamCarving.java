@@ -1,6 +1,9 @@
 package exam;
 
 import pixeljelly.ops.*;
+import pixeljelly.scanners.Location;
+import pixeljelly.scanners.RasterScanner;
+import pixeljelly.utilities.ColorUtilities;
 import pixeljelly.utilities.Kernel2D;
 import pixeljelly.utilities.SeperableKernel;
 import pixeljelly.utilities.SimpleColorModel;
@@ -12,7 +15,8 @@ import java.io.IOException;
 import java.net.URL;
 
 public class SeamCarving {
-    private static final String IMG_URL = "https://cs.brown.edu/courses/cs129/results/proj3/baebi/seam.jpg";
+    private static final String IMG_URL = "https://www.moma.org/media/W1siZiIsIjM4NjQ3MCJdLFsicCIsImNvbnZlcnQiLCItcXVhbGl0eSA5MCAtcmVzaXplIDIwMDB4MTQ0MFx1MDAzZSJdXQ.jpg?sha=4c0635a9ee70d63e";
+
     public static void main(String[] args) throws IOException {
         BufferedImage img = getImage(IMG_URL);
 
@@ -22,8 +26,16 @@ public class SeamCarving {
 
         EdgeMap map = new EdgeMap(energy);
 
-        ImageIO.write(map.toImg(), "png", new File("edgeMap.png"));
-        ImageIO.write(energy, "png", new File("edges.png"));
+        int[] path = new int[img.getHeight()];
+
+//        for (int i = 0; i < 200; i++) {
+            map.findPath(path);
+            img = map.deletePath(path, img);
+//        }
+
+        ImageIO.write(img, "png", new File("carved.png"));
+//        ImageIO.write(map.toImg(), "png", new File("edgeMap.png"));
+//        ImageIO.write(energy, "png", new File("edges.png"));
     }
 
     private static BufferedImage getImage(String imgUrl) throws IOException {
@@ -45,7 +57,16 @@ public class SeamCarving {
         BufferedImage imgX = new ConvolutionOp(kernelX, true).filter(in, null);
         BufferedImage imgY = new ConvolutionOp(kernelY, true).filter(in, null);
 
+        BufferedImage dest = new BufferedImage(imgY.getWidth(), imgY.getHeight(), imgY.getType());
+
         // Return the combination of the two.
-        return new AddBinaryOp(imgY).filter(imgX, null);
+        for (Location pt : new RasterScanner(dest, false)) {
+            int x = imgX.getRaster().getSample(pt.col, pt.row, 0);
+            int y = imgY.getRaster().getSample(pt.col, pt.row, 0);
+
+            dest.getRaster().setSample(pt.col, pt.row, 0, ColorUtilities.clamp(Math.sqrt(x * x + y * y)));
+        }
+
+        return dest;
     }
 }
