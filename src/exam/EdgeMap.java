@@ -203,6 +203,7 @@ public class EdgeMap {
 
         double minValue = energy[0][0], val;
         ArrayList<Integer> mins = new ArrayList<>();
+        mins.add(0);
 
         for (int x = 1; x < src.getWidth(); x++) {
             val = energy[x][0];
