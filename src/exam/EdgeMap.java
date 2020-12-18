@@ -8,14 +8,14 @@ import java.awt.image.BufferedImage;
 public class EdgeMap {
 
     private BufferedImage src;
-    private final BufferedImage edges;
-    private int[][] energy;
-    private int max = 0;
+    private final double[][] edges;
+    private double[][] energy;
+    private double max = 0;
 
     public EdgeMap(BufferedImage srcImg) {
         this.src = srcImg;
-        this.energy = new int[srcImg.getWidth()][srcImg.getHeight()];
-        this.edges = new EdgeDetectionOp().filter(srcImg, null);
+        this.energy = new double[srcImg.getWidth()][srcImg.getHeight()];
+        this.edges = new EdgeDetectionOp().filter(srcImg);
         initEnergy();
     }
 
@@ -23,7 +23,7 @@ public class EdgeMap {
         return src;
     }
 
-    public BufferedImage getEdges(){
+    public double[][] getEdges() {
         return edges;
     }
 
@@ -39,14 +39,14 @@ public class EdgeMap {
 
     private void initEnergy() {
         // Initialize the destination img by copying the bottom row.
-        for (int x = 0; x < edges.getWidth(); x++) {
-            energy[x][edges.getHeight() - 1] = edges.getRaster().getSample(x, edges.getHeight() - 1, 0);
+        for (int x = 0; x < edges.length; x++) {
+            energy[x][edges[0].length - 1] = edges[x][edges[0].length - 1];
         }
 
         // Iterate through the image from bottom to top.
-        for (int y = edges.getHeight() - 2; y >= 0; y--) {
-            for (int x = 0; x < edges.getWidth(); x++) {
-                int greyVal = edges.getRaster().getSample(x, y, 0);
+        for (int y = edges[0].length - 2; y >= 0; y--) {
+            for (int x = 0; x < edges.length; x++) {
+                double greyVal = edges[x][y];
 
                 energy[x][y] = greyVal + energy[findBestPath(x, y)][y + 1];
             }
@@ -55,9 +55,9 @@ public class EdgeMap {
 
     private int findBestPath(int x, int y) {
 
-        int left = getEnergy(x - 1, y + 1);
-        int right = getEnergy(x + 1, y + 1);
-        int min = getEnergy(x, y + 1);
+        double left = getEnergy(x - 1, y + 1);
+        double right = getEnergy(x + 1, y + 1);
+        double min = getEnergy(x, y + 1);
         int minIndex = x;
 
         max = Math.max(left, max);
@@ -77,7 +77,7 @@ public class EdgeMap {
 
     public void deletePath(int[] path) {
         BufferedImage dest = new BufferedImage(src.getWidth() - 1, src.getHeight(), src.getType());
-        int[][] newEnergy = new int[energy.length - 1][energy[0].length];
+        double[][] newEnergy = new double[energy.length - 1][energy[0].length];
 
         for (Location pt : new RasterScanner(dest, false)) {
 
@@ -90,7 +90,6 @@ public class EdgeMap {
 
             dest.setRGB(pt.col - offset, pt.row, src.getRGB(pt.col, pt.row));
         }
-
         energy = newEnergy;
         src = dest;
     }
@@ -112,9 +111,9 @@ public class EdgeMap {
     }
 
     private int getStartingPoint() {
-        int minIndex = 0,
-                minValue = energy[0][0],
-                val;
+        int minIndex = 0;
+
+        double minValue = energy[0][0], val;
 
         for (int x = 1; x < src.getWidth(); x++) {
             val = energy[x][0];
@@ -127,7 +126,7 @@ public class EdgeMap {
         return minIndex;
     }
 
-    private int getEnergy(int x, int y) {
+    private double getEnergy(int x, int y) {
         if (x < energy.length && x >= 0) {
             return energy[x][y];
         }

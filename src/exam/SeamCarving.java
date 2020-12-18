@@ -20,13 +20,14 @@ public class SeamCarving {
 
         EdgeMap map = new EdgeMap(img);
 
-        ImageIO.write(map.getEdges(), "png", new File("edges.png"));
+//        ImageIO.write(map.getEdges(), "png", new File("edges.png"));
         ImageIO.write(map.getEnergyImg(), "png", new File("edgeMap.png"));
 
         int[] path = new int[img.getHeight()];
 
         for (int i = 1; i <= 600; i++) {
-            System.out.println("Deleting line " + i);
+            if (i % 100 == 0)
+                System.out.println("Deleting line " + i);
             path = map.findPath(path);
             map.deletePath(path);
         }
