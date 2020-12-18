@@ -13,14 +13,14 @@ public class EdgeDetectionOp extends NullOp {
 
     public double[][] filter(BufferedImage src) {
         double[][] energy = new double[src.getWidth()][src.getHeight()];
-        BufferedImage dest = new BandExtractOp(SimpleColorModel.HSV, 2).filter(src, null);
+        BufferedImage brightness = new BandExtractOp(SimpleColorModel.HSV, 2).filter(src, null);
 
         // Apply them to the images.
-        double[][] imgX = convolveX(dest);
-        double[][] imgY = convolveY(dest);
+        double[][] imgX = convolveX(brightness);
+        double[][] imgY = convolveY(brightness);
 
         // Return the combination of the two.
-        for (Location pt : new RasterScanner(dest, false)) {
+        for (Location pt : new RasterScanner(src, false)) {
             double x = imgX[pt.col][pt.row];
             double y = imgY[pt.col][pt.row];
 
@@ -30,23 +30,23 @@ public class EdgeDetectionOp extends NullOp {
         return energy;
     }
 
-    private double[][] convolveX(BufferedImage img) {
-        double[][] edges = new double[img.getWidth()][img.getHeight()];
+    private double[][] convolveX(BufferedImage bright) {
+        double[][] edges = new double[bright.getWidth()][bright.getHeight()];
         ReflectivePadder padder = ReflectivePadder.getInstance();
-        for (Location pt : new RasterScanner(img, false)) {
-            edges[pt.col][pt.row] = padder.getSample(img, pt.col - 1, pt.row, 0) -
-                    padder.getSample(img, pt.col + 1, pt.row, 0);
+        for (Location pt : new RasterScanner(bright, false)) {
+            edges[pt.col][pt.row] = (padder.getSample(bright, pt.col - 1, pt.row, 0) -
+                    padder.getSample(bright, pt.col + 1, pt.row, 0));
         }
 
         return edges;
     }
 
-    private double[][] convolveY(BufferedImage img) {
-        double[][] edges = new double[img.getWidth()][img.getHeight()];
+    private double[][] convolveY(BufferedImage bright) {
+        double[][] edges = new double[bright.getWidth()][bright.getHeight()];
         ReflectivePadder padder = ReflectivePadder.getInstance();
-        for (Location pt : new RasterScanner(img, false)) {
-            edges[pt.col][pt.row] = padder.getSample(img, pt.col, pt.row - 1, 0) -
-                    padder.getSample(img, pt.col, pt.row + 1, 0);
+        for (Location pt : new RasterScanner(bright, false)) {
+            edges[pt.col][pt.row] = (padder.getSample(bright, pt.col, pt.row - 1, 0) -
+                    padder.getSample(bright, pt.col, pt.row + 1, 0));
         }
 
         return edges;

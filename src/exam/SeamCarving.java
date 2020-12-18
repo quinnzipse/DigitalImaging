@@ -20,20 +20,22 @@ public class SeamCarving {
 
         EdgeMap map = new EdgeMap(img);
 
-//        ImageIO.write(map.getEdges(), "png", new File("edges.png"));
         ImageIO.write(map.getEnergyImg(), "png", new File("edgeMap.png"));
 
         int[] path = new int[img.getHeight()];
 
-        for (int i = 1; i <= 600; i++) {
+//        try {
+////            map = map.addPaths(300);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        for (int i = 1; i <= 1000; i++) {
             if (i % 100 == 0)
                 System.out.println("Deleting line " + i);
-            path = map.findPath(path);
-            map.deletePath(path);
+            map = map.deletePath(path);
         }
 
         ImageIO.write(map.getImg(), "png", new File("carved.png"));
-//        ImageIO.write(energy, "png", new File("edges.png"));
     }
 
     private static BufferedImage getImage(String imgUrl) throws IOException {
