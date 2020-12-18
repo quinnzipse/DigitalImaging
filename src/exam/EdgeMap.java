@@ -8,21 +8,27 @@ import java.awt.image.BufferedImage;
 public class EdgeMap {
 
     private BufferedImage src;
+    private final BufferedImage edges;
     private int[][] energy;
     private int max = 0;
 
     public EdgeMap(BufferedImage srcImg) {
         this.src = srcImg;
         this.energy = new int[srcImg.getWidth()][srcImg.getHeight()];
-        initEnergy(new EdgeDetectionOp().filter(srcImg, null));
+        this.edges = new EdgeDetectionOp().filter(srcImg, null);
+        initEnergy();
     }
 
     public BufferedImage getImg() {
         return src;
     }
 
+    public BufferedImage getEdges(){
+        return edges;
+    }
+
     public BufferedImage getEnergyImg() {
-        BufferedImage out = new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
+        BufferedImage out = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
 
         for (Location pt : new RasterScanner(src, false)) {
             out.getRaster().setSample(pt.col, pt.row, 0, (int) (energy[pt.col][pt.row] / (max / 255.0)));
@@ -31,17 +37,16 @@ public class EdgeMap {
         return out;
     }
 
-    private void initEnergy(BufferedImage edgedImage) {
-
+    private void initEnergy() {
         // Initialize the destination img by copying the bottom row.
-        for (int x = 0; x < edgedImage.getWidth(); x++) {
-            energy[x][edgedImage.getHeight() - 1] = edgedImage.getRaster().getSample(x, edgedImage.getHeight() - 1, 0);
+        for (int x = 0; x < edges.getWidth(); x++) {
+            energy[x][edges.getHeight() - 1] = edges.getRaster().getSample(x, edges.getHeight() - 1, 0);
         }
 
         // Iterate through the image from bottom to top.
-        for (int y = edgedImage.getHeight() - 2; y >= 0; y--) {
-            for (int x = 0; x < edgedImage.getWidth(); x++) {
-                int greyVal = edgedImage.getRaster().getSample(x, y, 0);
+        for (int y = edges.getHeight() - 2; y >= 0; y--) {
+            for (int x = 0; x < edges.getWidth(); x++) {
+                int greyVal = edges.getRaster().getSample(x, y, 0);
 
                 energy[x][y] = greyVal + energy[findBestPath(x, y)][y + 1];
             }
