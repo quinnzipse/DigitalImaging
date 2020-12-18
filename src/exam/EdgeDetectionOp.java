@@ -11,6 +11,12 @@ import java.awt.image.BufferedImage;
 
 public class EdgeDetectionOp extends NullOp {
 
+    /**
+     * Calculates the edges in your source image.
+     *
+     * @param src your source image
+     * @return
+     */
     public double[][] filter(BufferedImage src) {
         double[][] energy = new double[src.getWidth()][src.getHeight()];
         BufferedImage brightness = new BandExtractOp(SimpleColorModel.HSV, 2).filter(src, null);
@@ -30,6 +36,12 @@ public class EdgeDetectionOp extends NullOp {
         return energy;
     }
 
+    /**
+     * Calculates the change in X by doing a simple convolve operation
+     *
+     * @param bright grey scale image representing the brightness.
+     * @return 2D array of doubles representing delta X at any given point in the image.
+     */
     private double[][] convolveX(BufferedImage bright) {
         double[][] edges = new double[bright.getWidth()][bright.getHeight()];
         ReflectivePadder padder = ReflectivePadder.getInstance();
@@ -41,6 +53,12 @@ public class EdgeDetectionOp extends NullOp {
         return edges;
     }
 
+    /**
+     * Calculates the change in Y by doing a simple convolve operation
+     *
+     * @param bright grey scale image representing the brightness.
+     * @return 2D array of doubles representing delta Y at any given point in the image.
+     */
     private double[][] convolveY(BufferedImage bright) {
         double[][] edges = new double[bright.getWidth()][bright.getHeight()];
         ReflectivePadder padder = ReflectivePadder.getInstance();
