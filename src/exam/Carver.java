@@ -23,85 +23,86 @@ public class Carver {
         this.src = srcImg;
         this.edges = new EdgeDetectionOp().filter(srcImg);
         this.areas = areas;
-        energy = new EnergyMap(edges, x);
+        energy = new EnergyMap(edges, x, areas);
     }
 
     public static BufferedImage erase(BufferedImage img, ArrayList<Rectangle> rectangles) throws IOException {
 //        Carver map = new Carver(img, false, rectangles);
 
-        int width = 0, height = 0;
+        int width = 20, height = 20;
         for (Rectangle rectangle : rectangles) {
             width += rectangle.width;
             height += rectangle.height;
         }
 
-        EnergyMap mapX = new EnergyMap(new EdgeDetectionOp().filter(img), true, true);
-        EnergyMap mapY = new EnergyMap(new EdgeDetectionOp().filter(img), false, true);
 
-
-        mapX.initEnergyX(rectangles.get(0));
-        mapY.initEnergyY(rectangles.get(0));
-
-        ImageIO.write(mapX.getEnergyImg(), "png", new File("xEn.png"));
-        ImageIO.write(mapY.getEnergyImg(), "png", new File("yEn.png"));
-
-//        int tempWidth = width, tempHeight = height;
-//        boolean w = false;
-//        int[] xPath = new int[img.getWidth()];
-//        int[] yPath = new int[img.getHeight()];
+        int tempWidth = width, tempHeight = height;
+        boolean w = false;
+        int[] xPath = new int[img.getWidth()];
+        int[] yPath = new int[img.getHeight()];
 
 //        System.out.print("Removing: " + width + " columns...");
 //        img = Carver.deletePathsX(img, width, rectangles);
 //        System.out.print(" " + height + " rows... ");
 //        img = Carver.deletePathsY(img, height, rectangles);
 //        System.out.println("Done.");
-
+//
 //        ImageIO.write(img, "png", new File("intermediate.png"));
-
+//
 //        System.out.print("Replacing: " + width + " columns... ");
 //        img = Carver.addPathsY(img, height);
 //        System.out.print(height + " rows... ");
 //        img = Carver.addPathsX(img, width);
 //        System.out.println(" Done.");
 
-//        while (tempWidth > 0 || tempHeight > 0) {
+        Carver map = new Carver(img, true, rectangles);
+
+        while (tempWidth > 0 || tempHeight > 0) {
+            if (w) {
+                map = new Carver(map.getImg(), true, rectangles);
+
+                for (int i = 0; i < 5 && tempWidth > 0; i++) {
+                    map = map.deletePathX(xPath);
+                    tempWidth--;
+                }
+                w = false;
+            } else {
+                map = new Carver(map.getImg(), false, rectangles);
+
+                for (int i = 0; i < 5 && tempHeight > 0; i++) {
+                    map = map.deletePathY(yPath);
+                    tempHeight--;
+                }
+                w = true;
+            }
+        }
+        System.out.println("Replacing...");
+//        while (tempHeight < height || tempWidth < width) {
 //            if (w) {
-//                for (int i = 0; i < 5 && tempWidth > 0; i++) {
-//                    map = map.deletePathX(xPath);
-//                    tempWidth--;
-//                }
+//                map = new Carver(map.getImg(), true, null);
 //
-//                w = false;
-//            } else {
-//                for (int i = 0; i < 5 && tempHeight > 0; i++) {
-//                    map = map.deletePathY(yPath);
-//                    tempHeight--;
-//                }
-//
-//                w = true;
-//            }
-//        }
-//        System.out.println("Replacing...");
-//        while (tempWidth < height || tempHeight < width) {
-//            if (w) {
 //                for (int i = 0; i < 5 && tempWidth < width; i++) {
 //                    map = map.addPathsX(1);
-//                    tempWidth--;
+//                    tempWidth++;
 //                }
 //
 //                w = false;
 //            } else {
+//                map = new Carver(map.getImg(), false, null);
 //                for (int i = 0; i < 5 && tempHeight < height; i++) {
 //                    map = map.addPathsY(1);
-//                    tempHeight--;
+//                    tempHeight++;
 //                }
 //
 //                w = true;
 //            }
 //        }
 
-        System.out.println("Finishing up!");
+        img = Carver.addPathsX(map.getImg(), width);
+        img = Carver.addPathsY(img, height);
 
+        System.out.println("Finishing up!");
+//        img = map.getImg();
         return img;
     }
 

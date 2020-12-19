@@ -2,20 +2,28 @@ package exam;
 
 import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
+import pixeljelly.utilities.ColorUtilities;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 
 public class EnergyMap {
     private double[][] energy;
     private double[][] edges;
     private double max = 0;
-    private boolean x;
+    private ArrayList<Rectangle> areas;
 
-    public EnergyMap(double[][] edges, boolean x, boolean y) {
-        this.x = x;
+    public EnergyMap(double[][] edges, boolean x, ArrayList<Rectangle> areas) {
         this.edges = edges;
         this.energy = new double[edges.length][edges[0].length];
+        if (areas == null) areas = new ArrayList<>();
+        this.areas = areas;
+        if (x) {
+            initEnergyX(areas.toArray(Rectangle[]::new));
+        } else {
+            initEnergyY(areas.toArray(Rectangle[]::new));
+        }
     }
 
     public EnergyMap(double[][] edges, boolean x) {
@@ -35,7 +43,7 @@ public class EnergyMap {
 
         for (Location pt : new RasterScanner(rect)) {
             out.getRaster().setSample(pt.col, pt.row, 0,
-                    (int) (energy[pt.col][pt.row] / (max / 255.0)));
+                    ColorUtilities.clamp(energy[pt.col][pt.row] / (max / 255.0)));
         }
 
         return out;
@@ -113,13 +121,13 @@ public class EnergyMap {
         for (int y = edges[0].length - 2; y >= 0; y--) {
             for (int x = 0; x < edges.length; x++) {
                 double greyVal = edges[x][y];
-
                 energy[x][y] = greyVal + energy[findBestPathX(x, y)][y + 1];
             }
         }
+
     }
 
-    public void initEnergyX(Rectangle rectangle) {
+    public void initEnergyX(Rectangle[] rectangle) {
         // Initialize the destination img by copying the bottom row.
         for (int x = 0; x < edges.length; x++) {
             energy[x][edges[0].length - 1] = edges[x][edges[0].length - 1];
@@ -131,8 +139,10 @@ public class EnergyMap {
                 double greyVal = edges[x][y];
 
                 energy[x][y] = greyVal + energy[findBestPathX(x, y)][y + 1];
-                if (rectangle.contains(x, y)) {
-                    energy[x][y] = 500;
+                for (int i = 0; i < rectangle.length; i++) {
+                    if (rectangle[i].contains(x, y)) {
+                        energy[x][y] = -50;
+                    }
                 }
             }
         }
@@ -152,7 +162,7 @@ public class EnergyMap {
         }
     }
 
-    public void initEnergyY(Rectangle rectangle) {
+    public void initEnergyY(Rectangle[] rectangle) {
         // Initialize the destination img by copying the right row.
         System.arraycopy(edges[edges.length - 1], 0, energy[edges.length - 1], 0, edges[0].length);
 
@@ -162,11 +172,15 @@ public class EnergyMap {
                 double greyVal = edges[x][y];
 
                 energy[x][y] = greyVal + energy[x + 1][findBestPathY(x, y)];
-                if (rectangle.contains(x, y)) {
-                    energy[x][y] = 500;
+                for (int i = 0; i < rectangle.length; i++) {
+                    if (rectangle[i].contains(x, y)) {
+                        energy[x][y] = -50;
+                        break;
+                    }
                 }
             }
         }
+
     }
 
     private double getEnergy(int x, int y) {

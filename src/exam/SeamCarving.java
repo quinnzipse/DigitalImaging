@@ -33,9 +33,9 @@ public class SeamCarving {
                 for (int r = 3; r < args.length; r++) {
                     String[] parms = args[r].split(",");
                     rectangles.add(new Rectangle(Integer.parseInt(parms[0]),
-                            Integer.parseInt(parms[0]),
-                            Integer.parseInt(parms[0]),
-                            Integer.parseInt(parms[0])));
+                            Integer.parseInt(parms[1]),
+                            Integer.parseInt(parms[2]),
+                            Integer.parseInt(parms[3])));
                 }
 
                 System.out.println("Removing " + rectangles.size() + " rectangle(s)!");
