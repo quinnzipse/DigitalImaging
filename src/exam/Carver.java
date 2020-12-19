@@ -5,6 +5,7 @@ import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -16,15 +17,86 @@ public class Carver {
     private BufferedImage src;
     private double[][] edges;
     private EnergyMap energy;
+    private final ArrayList<Rectangle> areas;
 
-    public Carver(BufferedImage srcImg, boolean x) {
+    public Carver(BufferedImage srcImg, boolean x, ArrayList<Rectangle> areas) {
         this.src = srcImg;
         this.edges = new EdgeDetectionOp().filter(srcImg);
-        energy = new EnergyMap(edges, x);
+        this.areas = areas;
+        energy = new EnergyMap(edges, x, areas);
     }
 
-    public static BufferedImage deletePathsY(BufferedImage img, int paths) {
-        Carver map = new Carver(img, false);
+    public static BufferedImage erase(BufferedImage img, ArrayList<Rectangle> rectangles) throws IOException {
+//        Carver map = new Carver(img, false, rectangles);
+
+        int width = 0, height = 0;
+        for (Rectangle rectangle : rectangles) {
+            width += rectangle.width;
+            height += rectangle.height;
+        }
+
+//        int tempWidth = width, tempHeight = height;
+//        boolean w = false;
+//        int[] xPath = new int[img.getWidth()];
+//        int[] yPath = new int[img.getHeight()];
+
+        System.out.print("Removing: " + width + " columns...");
+        img = Carver.deletePathsX(img, width, rectangles);
+//        System.out.print(" " + height + " rows... ");
+//        img = Carver.deletePathsY(img, height, rectangles);
+        System.out.println("Done.");
+
+        ImageIO.write(img, "png", new File("intermediate.png"));
+
+        System.out.print("Replacing: " + width + " columns... ");
+//        img = Carver.addPathsY(img, height);
+//        System.out.print(height + " rows... ");
+        img = Carver.addPathsX(img, width);
+        System.out.println(" Done.");
+
+//        while (tempWidth > 0 || tempHeight > 0) {
+//            if (w) {
+//                for (int i = 0; i < 5 && tempWidth > 0; i++) {
+//                    map = map.deletePathX(xPath);
+//                    tempWidth--;
+//                }
+//
+//                w = false;
+//            } else {
+//                for (int i = 0; i < 5 && tempHeight > 0; i++) {
+//                    map = map.deletePathY(yPath);
+//                    tempHeight--;
+//                }
+//
+//                w = true;
+//            }
+//        }
+//        System.out.println("Replacing...");
+//        while (tempWidth < height || tempHeight < width) {
+//            if (w) {
+//                for (int i = 0; i < 5 && tempWidth < width; i++) {
+//                    map = map.addPathsX(1);
+//                    tempWidth--;
+//                }
+//
+//                w = false;
+//            } else {
+//                for (int i = 0; i < 5 && tempHeight < height; i++) {
+//                    map = map.addPathsY(1);
+//                    tempHeight--;
+//                }
+//
+//                w = true;
+//            }
+//        }
+
+        System.out.println("Finishing up!");
+
+        return img;
+    }
+
+    public static BufferedImage deletePathsY(BufferedImage img, int paths, ArrayList<Rectangle> list) {
+        Carver map = new Carver(img, false, list);
 
         int[] path = new int[img.getWidth()];
 
@@ -35,8 +107,8 @@ public class Carver {
         return map.getImg();
     }
 
-    public static BufferedImage deletePathsX(BufferedImage img, int paths) {
-        Carver map = new Carver(img, true);
+    public static BufferedImage deletePathsX(BufferedImage img, int paths, ArrayList<Rectangle> list) {
+        Carver map = new Carver(img, true, list);
 
         int[] path = new int[img.getHeight()];
 
@@ -48,17 +120,15 @@ public class Carver {
     }
 
     public static BufferedImage addPathsX(BufferedImage img, int paths) {
-        Carver map = new Carver(img, true);
+        Carver map = new Carver(img, true, null);
 
         map = map.addPathsX(paths);
 
         return map.getImg();
     }
 
-    public static BufferedImage addPathsY(BufferedImage img, int paths) throws IOException {
-        Carver map = new Carver(img, false);
-
-        ImageIO.write(map.getImg(), "png", new File("energy.png"));
+    public static BufferedImage addPathsY(BufferedImage img, int paths) {
+        Carver map = new Carver(img, false, null);
 
         map = map.addPathsY(paths);
 
@@ -91,7 +161,7 @@ public class Carver {
             dest.setRGB(pt.col - offset, pt.row, src.getRGB(pt.col, pt.row));
         }
 
-        return new Carver(dest, true);
+        return new Carver(dest, true, areas);
     }
 
     public Carver deletePathY(int[] path) {
@@ -108,7 +178,7 @@ public class Carver {
             dest.setRGB(pt.col, pt.row - offset, src.getRGB(pt.col, pt.row));
         }
 
-        return new Carver(dest, false);
+        return new Carver(dest, false, areas);
     }
 
     public Carver addPathsX(int count) {
@@ -122,11 +192,11 @@ public class Carver {
             if (i % (width / 3) == 0) {
                 src = continuing;
                 this.edges = new EdgeDetectionOp().filter(continuing);
-                energy = new EnergyMap(edges, true);
+                energy = new EnergyMap(edges, true, areas);
             }
         }
 
-        return new Carver(continuing, true);
+        return new Carver(continuing, true, areas);
     }
 
     public Carver addPathsY(int count) {
@@ -140,11 +210,11 @@ public class Carver {
             if (i % (height / 5) == 0) {
                 src = continuing;
                 this.edges = new EdgeDetectionOp().filter(continuing);
-                energy = new EnergyMap(edges, false);
+                energy = new EnergyMap(edges, false, areas);
             }
         }
 
-        return new Carver(continuing, false);
+        return new Carver(continuing, false, areas);
     }
 
     public BufferedImage addPathX(int[] path, BufferedImage img) {
@@ -170,7 +240,7 @@ public class Carver {
 
         src = dest;
         this.edges = new EdgeDetectionOp().filter(dest);
-        energy = new EnergyMap(edges, true);
+        energy = new EnergyMap(edges, true, areas);
 
         return destImg;
     }
@@ -198,7 +268,7 @@ public class Carver {
 
         src = dest;
         this.edges = new EdgeDetectionOp().filter(dest);
-        energy = new EnergyMap(edges, false);
+        energy = new EnergyMap(edges, false, areas);
 
         return destImg;
     }

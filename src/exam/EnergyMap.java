@@ -5,13 +5,14 @@ import pixeljelly.scanners.RasterScanner;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 
 public class EnergyMap {
     private final double[][] energy;
     private final double[][] edges;
     private double max = 0;
 
-    public EnergyMap(double[][] edges, boolean x) {
+    public EnergyMap(double[][] edges, boolean x, ArrayList<Rectangle> areas) {
         this.edges = edges;
         this.energy = new double[edges.length][edges[0].length];
         if (x) {
@@ -37,7 +38,6 @@ public class EnergyMap {
     public double get(int x, int y) throws IndexOutOfBoundsException {
         return energy[x][y];
     }
-
 
     /**
      * Given an x and y to search at, it will calculate the best next step.
