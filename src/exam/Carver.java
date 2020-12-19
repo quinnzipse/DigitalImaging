@@ -4,7 +4,10 @@ import pixeljelly.ops.NullOp;
 import pixeljelly.scanners.Location;
 import pixeljelly.scanners.RasterScanner;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -18,6 +21,48 @@ public class Carver {
         this.src = srcImg;
         this.edges = new EdgeDetectionOp().filter(srcImg);
         energy = new EnergyMap(edges, x);
+    }
+
+    public static BufferedImage deletePathsY(BufferedImage img, int paths) {
+        Carver map = new Carver(img, false);
+
+        int[] path = new int[img.getWidth()];
+
+        for (int i = 1; i <= paths; i++) {
+            map = map.deletePathY(path);
+        }
+
+        return map.getImg();
+    }
+
+    public static BufferedImage deletePathsX(BufferedImage img, int paths) {
+        Carver map = new Carver(img, true);
+
+        int[] path = new int[img.getHeight()];
+
+        for (int i = 1; i <= paths; i++) {
+            map = map.deletePathX(path);
+        }
+
+        return map.getImg();
+    }
+
+    public static BufferedImage addPathsX(BufferedImage img, int paths) {
+        Carver map = new Carver(img, true);
+
+        map = map.addPathsX(paths);
+
+        return map.getImg();
+    }
+
+    public static BufferedImage addPathsY(BufferedImage img, int paths) throws IOException {
+        Carver map = new Carver(img, false);
+
+        ImageIO.write(map.getImg(), "png", new File("energy.png"));
+
+        map = map.addPathsY(paths);
+
+        return map.getImg();
     }
 
     public BufferedImage getImg() {
@@ -75,7 +120,6 @@ public class Carver {
             continuing = addPathX(path, continuing);
 
             if (i % (width / 3) == 0) {
-                System.out.println("Recompute");
                 src = continuing;
                 this.edges = new EdgeDetectionOp().filter(continuing);
                 energy = new EnergyMap(edges, true);
@@ -83,6 +127,24 @@ public class Carver {
         }
 
         return new Carver(continuing, true);
+    }
+
+    public Carver addPathsY(int count) {
+        int height = src.getHeight();
+        int[] path = new int[src.getWidth()];
+        BufferedImage continuing = new NullOp().filter(src, null);
+
+        for (int i = 0; i < count; i++) {
+            continuing = addPathY(path, continuing);
+
+            if (i % (height / 5) == 0) {
+                src = continuing;
+                this.edges = new EdgeDetectionOp().filter(continuing);
+                energy = new EnergyMap(edges, false);
+            }
+        }
+
+        return new Carver(continuing, false);
     }
 
     public BufferedImage addPathX(int[] path, BufferedImage img) {
@@ -109,6 +171,34 @@ public class Carver {
         src = dest;
         this.edges = new EdgeDetectionOp().filter(dest);
         energy = new EnergyMap(edges, true);
+
+        return destImg;
+    }
+
+    public BufferedImage addPathY(int[] path, BufferedImage img) {
+        path = findPathY(path);
+        BufferedImage dest = new BufferedImage(src.getWidth(), src.getHeight() + 1, src.getType());
+        BufferedImage destImg = new BufferedImage(img.getWidth(), img.getHeight() + 1, img.getType());
+
+        for (Location pt : new RasterScanner(src, false)) {
+
+            if (path[pt.col] == pt.row) {
+                for (int b = 0; b < src.getRaster().getNumBands(); b++) {
+                    dest.getRaster().setSample(pt.col, pt.row, b, 255 - src.getRaster().getSample(pt.col, pt.row, b));
+                    destImg.getRaster().setSample(pt.col, pt.row, b, img.getRaster().getSample(pt.col, pt.row, b));
+                }
+            }
+
+            // If the location is after the removal, shift over one.
+            int offset = path[pt.col] <= pt.row ? 1 : 0;
+
+            dest.setRGB(pt.col, pt.row + offset, src.getRGB(pt.col, pt.row));
+            destImg.setRGB(pt.col, pt.row + offset, img.getRGB(pt.col, pt.row));
+        }
+
+        src = dest;
+        this.edges = new EdgeDetectionOp().filter(dest);
+        energy = new EnergyMap(edges, false);
 
         return destImg;
     }

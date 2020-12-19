@@ -38,10 +38,6 @@ public class EnergyMap {
         return energy[x][y];
     }
 
-//    public Integer[] getDistinctPaths(int count) {
-//        double[][] energy = energy
-//    }
-
 
     /**
      * Given an x and y to search at, it will calculate the best next step.
@@ -118,7 +114,7 @@ public class EnergyMap {
     }
 
     private void initEnergyY() {
-        // Initialize the destination img by copying the bottom row.
+        // Initialize the destination img by copying the right row.
         System.arraycopy(edges[edges.length - 1], 0, energy[edges.length - 1], 0, edges[0].length);
 
         // Iterate through the image from right to left.
@@ -137,21 +133,6 @@ public class EnergyMap {
         }
 
         return -1;
-    }
-
-    private static class Weight implements Comparable<Weight> {
-        private final int index;
-        private final double weight;
-
-        public Weight(int index, double weight) {
-            this.index = index;
-            this.weight = weight;
-        }
-
-        @Override
-        public int compareTo(Weight o) {
-            return (int) (o.weight - this.weight);
-        }
     }
 
 }
