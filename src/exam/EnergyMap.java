@@ -5,14 +5,20 @@ import pixeljelly.scanners.RasterScanner;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 
 public class EnergyMap {
-    private final double[][] energy;
-    private final double[][] edges;
+    private double[][] energy;
+    private double[][] edges;
     private double max = 0;
+    private boolean x;
 
-    public EnergyMap(double[][] edges, boolean x, ArrayList<Rectangle> areas) {
+    public EnergyMap(double[][] edges, boolean x, boolean y) {
+        this.x = x;
+        this.edges = edges;
+        this.energy = new double[edges.length][edges[0].length];
+    }
+
+    public EnergyMap(double[][] edges, boolean x) {
         this.edges = edges;
         this.energy = new double[edges.length][edges[0].length];
         if (x) {
@@ -113,6 +119,25 @@ public class EnergyMap {
         }
     }
 
+    public void initEnergyX(Rectangle rectangle) {
+        // Initialize the destination img by copying the bottom row.
+        for (int x = 0; x < edges.length; x++) {
+            energy[x][edges[0].length - 1] = edges[x][edges[0].length - 1];
+        }
+
+        // Iterate through the image from bottom to top.
+        for (int y = edges[0].length - 2; y >= 0; y--) {
+            for (int x = 0; x < edges.length; x++) {
+                double greyVal = edges[x][y];
+
+                energy[x][y] = greyVal + energy[findBestPathX(x, y)][y + 1];
+                if (rectangle.contains(x, y)) {
+                    energy[x][y] = 500;
+                }
+            }
+        }
+    }
+
     private void initEnergyY() {
         // Initialize the destination img by copying the right row.
         System.arraycopy(edges[edges.length - 1], 0, energy[edges.length - 1], 0, edges[0].length);
@@ -123,6 +148,23 @@ public class EnergyMap {
                 double greyVal = edges[x][y];
 
                 energy[x][y] = greyVal + energy[x + 1][findBestPathY(x, y)];
+            }
+        }
+    }
+
+    public void initEnergyY(Rectangle rectangle) {
+        // Initialize the destination img by copying the right row.
+        System.arraycopy(edges[edges.length - 1], 0, energy[edges.length - 1], 0, edges[0].length);
+
+        // Iterate through the image from right to left.
+        for (int x = edges.length - 2; x >= 0; x--) {
+            for (int y = 0; y < edges[0].length; y++) {
+                double greyVal = edges[x][y];
+
+                energy[x][y] = greyVal + energy[x + 1][findBestPathY(x, y)];
+                if (rectangle.contains(x, y)) {
+                    energy[x][y] = 500;
+                }
             }
         }
     }

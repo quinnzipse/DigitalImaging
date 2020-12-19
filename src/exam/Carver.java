@@ -23,7 +23,7 @@ public class Carver {
         this.src = srcImg;
         this.edges = new EdgeDetectionOp().filter(srcImg);
         this.areas = areas;
-        energy = new EnergyMap(edges, x, areas);
+        energy = new EnergyMap(edges, x);
     }
 
     public static BufferedImage erase(BufferedImage img, ArrayList<Rectangle> rectangles) throws IOException {
@@ -35,24 +35,34 @@ public class Carver {
             height += rectangle.height;
         }
 
+        EnergyMap mapX = new EnergyMap(new EdgeDetectionOp().filter(img), true, true);
+        EnergyMap mapY = new EnergyMap(new EdgeDetectionOp().filter(img), false, true);
+
+
+        mapX.initEnergyX(rectangles.get(0));
+        mapY.initEnergyY(rectangles.get(0));
+
+        ImageIO.write(mapX.getEnergyImg(), "png", new File("xEn.png"));
+        ImageIO.write(mapY.getEnergyImg(), "png", new File("yEn.png"));
+
 //        int tempWidth = width, tempHeight = height;
 //        boolean w = false;
 //        int[] xPath = new int[img.getWidth()];
 //        int[] yPath = new int[img.getHeight()];
 
-        System.out.print("Removing: " + width + " columns...");
-        img = Carver.deletePathsX(img, width, rectangles);
+//        System.out.print("Removing: " + width + " columns...");
+//        img = Carver.deletePathsX(img, width, rectangles);
 //        System.out.print(" " + height + " rows... ");
 //        img = Carver.deletePathsY(img, height, rectangles);
-        System.out.println("Done.");
+//        System.out.println("Done.");
 
-        ImageIO.write(img, "png", new File("intermediate.png"));
+//        ImageIO.write(img, "png", new File("intermediate.png"));
 
-        System.out.print("Replacing: " + width + " columns... ");
+//        System.out.print("Replacing: " + width + " columns... ");
 //        img = Carver.addPathsY(img, height);
 //        System.out.print(height + " rows... ");
-        img = Carver.addPathsX(img, width);
-        System.out.println(" Done.");
+//        img = Carver.addPathsX(img, width);
+//        System.out.println(" Done.");
 
 //        while (tempWidth > 0 || tempHeight > 0) {
 //            if (w) {
@@ -192,7 +202,7 @@ public class Carver {
             if (i % (width / 3) == 0) {
                 src = continuing;
                 this.edges = new EdgeDetectionOp().filter(continuing);
-                energy = new EnergyMap(edges, true, areas);
+                energy = new EnergyMap(edges, true);
             }
         }
 
@@ -210,7 +220,7 @@ public class Carver {
             if (i % (height / 5) == 0) {
                 src = continuing;
                 this.edges = new EdgeDetectionOp().filter(continuing);
-                energy = new EnergyMap(edges, false, areas);
+                energy = new EnergyMap(edges, false);
             }
         }
 
@@ -240,7 +250,7 @@ public class Carver {
 
         src = dest;
         this.edges = new EdgeDetectionOp().filter(dest);
-        energy = new EnergyMap(edges, true, areas);
+        energy = new EnergyMap(edges, true);
 
         return destImg;
     }
@@ -268,7 +278,7 @@ public class Carver {
 
         src = dest;
         this.edges = new EdgeDetectionOp().filter(dest);
-        energy = new EnergyMap(edges, false, areas);
+        energy = new EnergyMap(edges, false);
 
         return destImg;
     }
