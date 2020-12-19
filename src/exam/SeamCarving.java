@@ -11,28 +11,27 @@ import java.io.IOException;
 import java.net.URL;
 
 public class SeamCarving {
-    private static final String IMG_URL = "https://upload.wikimedia.org/wikipedia/commons/c/cb/Broadway_tower_edit.jpg";
+//    private static final String IMG_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Broadway_tower_edit.jpg/1280px-Broadway_tower_edit.jpg";
+    private static final String IMG_URL = "https://www.reproduction-gallery.com/catalogue/uploads/1522662218_large-image_dali-persistence-of-memory-lg.jpg?is_thumbnail=yes";
 
     public static void main(String[] args) throws IOException {
         BufferedImage img = getImage(IMG_URL);
 
         ImageIO.write(new MagnitudeOfGradientOp().filter(new BandExtractOp(SimpleColorModel.HSV, 2).filter(img, null), null), "png", new File("mog.png"));
 
-        EdgeMap map = new EdgeMap(img);
+        Carver map = new Carver(img);
 
-        ImageIO.write(map.getEnergyImg(), "png", new File("edgeMap.png"));
+//        ImageIO.write(map.getEnergyImg(), "png", new File("edgeMap.png"));
 
         int[] path = new int[img.getHeight()];
 
 //        try {
-////            map = map.addPaths(300);
+//            map = map.addPathsX(1200);
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
-        for (int i = 1; i <= 1000; i++) {
-            if (i % 100 == 0)
-                System.out.println("Deleting line " + i);
-            map = map.deletePath(path);
+        for (int i = 1; i <= 50; i++) {
+            map = map.deletePathY(path);
         }
 
         ImageIO.write(map.getImg(), "png", new File("carved.png"));
