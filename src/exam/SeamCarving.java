@@ -19,11 +19,11 @@ public class SeamCarving {
 
         ImageIO.write(new MagnitudeOfGradientOp().filter(new BandExtractOp(SimpleColorModel.HSV, 2).filter(img, null), null), "png", new File("mog.png"));
 
-        Carver map = new Carver(img);
+        Carver map = new Carver(img, false);
 
-//        ImageIO.write(map.getEnergyImg(), "png", new File("edgeMap.png"));
+        ImageIO.write(map.getEnergyImg(), "png", new File("edgeMap.png"));
 
-        int[] path = new int[img.getHeight()];
+        int[] path = new int[img.getWidth()];
 
 //        try {
 //            map = map.addPathsX(1200);

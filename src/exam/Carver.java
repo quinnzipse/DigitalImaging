@@ -14,14 +14,18 @@ public class Carver {
     private double[][] edges;
     private EnergyMap energy;
 
-    public Carver(BufferedImage srcImg) {
+    public Carver(BufferedImage srcImg, boolean x) {
         this.src = srcImg;
         this.edges = new EdgeDetectionOp().filter(srcImg);
-        energy = new EnergyMap(edges);
+        energy = new EnergyMap(edges, x);
     }
 
     public BufferedImage getImg() {
         return src;
+    }
+
+    public BufferedImage getEnergyImg() {
+        return energy.getEnergyImg();
     }
 
     public double[][] getEdges() {
@@ -42,7 +46,7 @@ public class Carver {
             dest.setRGB(pt.col - offset, pt.row, src.getRGB(pt.col, pt.row));
         }
 
-        return new Carver(dest);
+        return new Carver(dest, true);
     }
 
     public Carver deletePathY(int[] path) {
@@ -59,13 +63,14 @@ public class Carver {
             dest.setRGB(pt.col, pt.row - offset, src.getRGB(pt.col, pt.row));
         }
 
-        return new Carver(dest);
+        return new Carver(dest, false);
     }
 
     public Carver addPathsX(int count) {
         int width = src.getWidth();
         int[] path = new int[src.getHeight()];
         BufferedImage continuing = new NullOp().filter(src, null);
+
         for (int i = 0; i < count; i++) {
             continuing = addPathX(path, continuing);
 
@@ -73,11 +78,11 @@ public class Carver {
                 System.out.println("Recompute");
                 src = continuing;
                 this.edges = new EdgeDetectionOp().filter(continuing);
-                energy = new EnergyMap(edges);
+                energy = new EnergyMap(edges, true);
             }
         }
 
-        return new Carver(continuing);
+        return new Carver(continuing, true);
     }
 
     public BufferedImage addPathX(int[] path, BufferedImage img) {
@@ -103,7 +108,7 @@ public class Carver {
 
         src = dest;
         this.edges = new EdgeDetectionOp().filter(dest);
-        energy = new EnergyMap(edges);
+        energy = new EnergyMap(edges, true);
 
         return destImg;
     }
@@ -117,7 +122,7 @@ public class Carver {
             path = new int[src.getHeight()];
         }
 
-        return findPathX(getStartingPoints()[0], path);
+        return findPathX(getStartingPointsX()[0], path);
     }
 
     /**
@@ -125,11 +130,11 @@ public class Carver {
      * @return an array of indices where indexed by x.
      */
     public int[] findPathY(int[] path) {
-        if (path == null || path.length != src.getHeight()) {
-            path = new int[src.getHeight()];
+        if (path == null || path.length != src.getWidth()) {
+            path = new int[src.getWidth()];
         }
 
-        return findPathY(getStartingPoints()[0], path);
+        return findPathY(getStartingPointsY()[0], path);
     }
 
     /**
@@ -149,14 +154,38 @@ public class Carver {
         int y = 1;
 
         while (y < src.getHeight()) {
-            path[y] = energy.findBestPath(path[y - 1], y - 1);
+            path[y] = energy.findBestPathX(path[y - 1], y - 1);
             y++;
         }
 
         return path;
     }
 
-    private Integer[] getStartingPoints() {
+    /**
+     * Given an Y at x=0, find the best path through the image.
+     *
+     * @param y
+     * @param path
+     * @return
+     */
+    public int[] findPathY(int y, int[] path) {
+        if (path == null || path.length != src.getWidth()) {
+            path = new int[src.getWidth()];
+        }
+
+        path[0] = y;
+
+        int x = 1;
+
+        while (x < src.getWidth()) {
+            path[x] = energy.findBestPathY(x - 1, path[x - 1]);
+            x++;
+        }
+
+        return path;
+    }
+
+    private Integer[] getStartingPointsX() {
 
         double minValue = energy.get(0, 0), val;
         ArrayList<Integer> mins = new ArrayList<>();
@@ -170,6 +199,27 @@ public class Carver {
                 mins.add(x);
             } else if (val == minValue) {
                 mins.add(x);
+            }
+        }
+
+        Collections.shuffle(mins);
+        return mins.toArray(Integer[]::new);
+    }
+
+    private Integer[] getStartingPointsY() {
+
+        double minValue = energy.get(0, 0), val;
+        ArrayList<Integer> mins = new ArrayList<>();
+        mins.add(0);
+
+        for (int y = 1; y < src.getHeight(); y++) {
+            val = energy.get(0, y);
+            if (val < minValue) {
+                minValue = val;
+                mins = new ArrayList<>();
+                mins.add(y);
+            } else if (val == minValue) {
+                mins.add(y);
             }
         }
 
